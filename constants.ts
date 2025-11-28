@@ -12,9 +12,9 @@ export const IPFS_GATEWAY = "https://ipfs.io/ipfs/bafybeibu47rax5yr4bdkl7gxqttyu
 const metaEnv = (import.meta as any).env;
 
 export const env = {
-  VITE_KV_REST_API_URL: metaEnv?.VITE_KV_REST_API_URL || "",
-  VITE_KV_REST_API_TOKEN: metaEnv?.VITE_KV_REST_API_TOKEN || "",
-  VITE_NEYNAR_API_KEY: metaEnv?.VITE_NEYNAR_API_KEY || "",
+  VITE_KV_REST_API_URL: metaEnv?.VITE_KV_REST_API_URL || metaEnv?.KV_REST_API_URL || "",
+  VITE_KV_REST_API_TOKEN: metaEnv?.VITE_KV_REST_API_TOKEN || metaEnv?.KV_REST_API_TOKEN || "",
+  VITE_NEYNAR_API_KEY: metaEnv?.VITE_NEYNAR_API_KEY || metaEnv?.NEYNAR_API_KEY || "",
 };
 
 // Vercel KV (Upstash) Credentials

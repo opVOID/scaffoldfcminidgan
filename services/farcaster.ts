@@ -6,7 +6,10 @@ import { NEYNAR_API_KEY } from '../constants';
 const profileCache: Record<string, FarcasterProfile | null> = {};
 
 export const fetchFarcasterProfile = async (address: string): Promise<FarcasterProfile | undefined> => {
-  if (!NEYNAR_API_KEY || !address) return undefined;
+  if (!NEYNAR_API_KEY || !address) {
+    console.log("Neynar API key not found - Farcaster features disabled");
+    return undefined;
+  }
   
   const addr = address.toLowerCase();
   if (profileCache[addr] !== undefined) {

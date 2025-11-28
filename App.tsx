@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWallet } from './hooks/useWallet';
 import { PageType } from './types';
 import NavBar from './components/NavBar';
@@ -10,9 +9,37 @@ import Airdrop from './pages/Airdrop';
 import Raffle from './pages/Raffle';
 import Card from './pages/Card';
 
+// Initialize Farcaster SDK directly
+declare global {
+  interface Window {
+    sdk?: any;
+  }
+}
+
 function App() {
   const { wallet, connect } = useWallet();
   const [activePage, setActivePage] = useState<PageType>('mint');
+
+  // Initialize Farcaster SDK when app loads
+ useEffect(() => {
+  // Only try to initialize if we're actually in a Farcaster environment
+  if (window.location.href.includes('warpcast') || window.location.href.includes('farcaster')) {
+    if (window.sdk && window.sdk.actions && typeof window.sdk.actions.ready === 'function') {
+      console.log('Initializing Farcaster SDK...');
+      window.sdk.actions.ready();
+    } else if (window.sdk) {
+      // Retry after delay if SDK found but not ready
+      setTimeout(() => {
+        if (window.sdk?.actions?.ready) {
+          console.log('Farcaster SDK ready on retry');
+          window.sdk.actions.ready();
+        }
+      }, 1000);
+    }
+  } else {
+    console.log('Not in Farcaster environment - skipping SDK initialization');
+  }
+}, []);
 
   const renderPage = () => {
     switch (activePage) {
@@ -23,8 +50,6 @@ function App() {
       case 'airdrop':
         return <Airdrop wallet={wallet} />;
       case 'card':
-        // Card is now just a popup overlaying the Mint page essentially, 
-        // or just renders the Card component which handles its own display
         return <Card wallet={wallet} setPage={setActivePage} />;
       case 'raffle':
         return <Raffle />;

@@ -23,6 +23,8 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
   const [errorNFTs, setErrorNFTs] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [shareRewardMsg, setShareRewardMsg] = useState('');
+  const [msg, setMsg] = useState('');
+  const [msgType, setMsgType] = useState<'success' | 'error' | 'info'>('info');
 
   // Stats from Contract
   const [stats, setStats] = useState({
@@ -75,6 +77,12 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
     }
   }, [showMyNFTs, wallet.address]);
 
+  const showMessage = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setMsg(text);
+    setMsgType(type);
+    setTimeout(() => setMsg(''), 4000);
+  };
+
   const handleMint = async () => {
     if (!wallet.connected) {
       onConnect();
@@ -83,22 +91,102 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
 
     setMinting(true);
     
-    // Simulate mint delay and success (In real implementation, interact with contract via wallet provider)
-    setTimeout(async () => {
-      setMinting(false);
+    try {
+      // Calculate total price in wei
+      const totalPriceWei = Math.floor(stats.price * 1e18) * quantity;
       
-      // Fetch a random NFT to simulate the mint reveal
-      const randomId = Math.floor(Math.random() * 10);
-      const metadata = await fetchMetadata(randomId);
+      // Prepare mint transaction with quantity
+      const mintFunctionData = quantity > 1 
+        ? `0x8a4c5b5e${quantity.toString(16).padStart(64, '0')}` // mint(uint256) selector
+        : '0x1249c58b'; // mint() selector for single
       
-      if (metadata) {
-        setMintedNFT(metadata);
-        setShowSuccess(true);
+      const txParams = {
+        from: wallet.address,
+        to: CONTRACT_ADDRESS,
+        data: mintFunctionData,
+        value: totalPriceWei.toString(16),
+      };
+
+      // Send transaction
+      const txHash = await (window as any).ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [txParams],
+      });
+
+      showMessage('Transaction submitted! Waiting for confirmation...', 'info');
+      
+      // Wait for transaction confirmation and get real minted token
+      setTimeout(async () => {
+        try {
+          // Get the real minted token ID from transaction receipt
+          const receipt = await (window as any).ethereum.request({
+            method: 'eth_getTransactionReceipt',
+            params: [txHash],
+          });
+
+          if (receipt && receipt.status === '0x1') {
+            // Parse the Transfer event to get the token ID
+            const transferLog = receipt.logs.find(log => 
+              log.address.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()
+            );
+            
+            let tokenId = Date.now().toString(); // fallback
+            
+            if (transferLog && transferLog.topics && transferLog.topics.length > 3) {
+              // Extract token ID from Transfer event (topic[3] contains the token ID)
+              tokenId = parseInt(transferLog.topics[3], 16).toString();
+            }
+
+            // Fetch the real metadata for the minted token
+            const metadata = await fetchMetadata(parseInt(tokenId));
+            
+            if (metadata) {
+              setMintedNFT(metadata);
+            } else {
+              // Fallback to constructed NFT with real token ID
+              setMintedNFT({
+                id: tokenId,
+                name: `Bastard DeGAN Phunk #${tokenId}`,
+                image: `https://fcphunksmini.vercel.app/token/${tokenId}.webp`,
+                description: `Bastard DeGAN Phunk #${tokenId} - Minted on Base chain`,
+                attributes: [],
+                isAnimated: false
+              });
+            }
+            
+            setShowSuccess(true);
+            showMessage('🎉 Mint successful!', 'success');
+          } else {
+            throw new Error('Transaction failed');
+          }
+        } catch (error) {
+          console.error('Error getting minted token:', error);
+          // Fallback with incremented token ID
+          const data = await fetchCollectionStats();
+          const nextTokenId = data.totalSupply + 1;
+          setMintedNFT({
+            id: nextTokenId.toString(),
+            name: `Bastard DeGAN Phunk #${nextTokenId}`,
+            image: `https://fcphunksmini.vercel.app/token/${nextTokenId}.webp`,
+            description: `Bastard DeGAN Phunk #${nextTokenId} - Minted on Base chain`,
+            attributes: [],
+            isAnimated: false
+          });
+          setShowSuccess(true);
+          showMessage('🎉 Mint successful!', 'success');
+        }
+        
         // Refresh supply after mint
         const data = await fetchCollectionStats();
-        setStats(prev => ({ ...prev, supply: data.totalSupply }));
-      }
-    }, 2000);
+        setStats(prev => ({ ...prev, totalSupply: data.totalSupply }));
+        setMinting(false);
+      }, 3000);
+      
+    } catch (error: any) {
+      console.error('Mint error:', error);
+      showMessage(error.message || 'Mint failed', 'error');
+      setMinting(false);
+    }
   };
 
   const handleShare = async () => {
@@ -111,20 +199,117 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
         setTimeout(() => setShareRewardMsg(''), 3000);
     }
 
-    // 2. Open Warpcast with 2 embeds: Image + App URL
+    // 2. Open Warpcast with a single HTML embed containing both image and app side by side
     const text = `I just minted ${mintedNFT.name}! Verify my Phunk on Base. ⚡️`;
     const imageUrl = mintedNFT.image;
-    // We add two embeds: The image and the Mini App URL. Warpcast usually renders this as Image Left / App Right
-    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(imageUrl)}&embeds[]=${encodeURIComponent(APP_URL)}`;
+    
+    // Create HTML embed with guaranteed side-by-side layout
+    const embedHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta property="og:image" content="${imageUrl}">
+          <meta property="og:title" content="${mintedNFT.name}">
+          <meta property="og:description" content="I just minted ${mintedNFT.name}! Verify my Phunk on Base. ⚡️">
+          <style>
+            * { box-sizing: border-box; }
+            body { 
+              margin: 0; 
+              padding: 12px; 
+              font-family: system-ui, -apple-system, sans-serif; 
+              background: #000; 
+              color: #fff;
+              line-height: 1.4;
+            }
+            .container { 
+              display: flex; 
+              gap: 12px; 
+              align-items: center; 
+              max-width: 100%;
+              min-height: 120px;
+            }
+            .image { 
+              width: 120px; 
+              height: 120px; 
+              object-fit: cover; 
+              border-radius: 8px;
+              flex-shrink: 0;
+              background: #222;
+            }
+            .app-info { 
+              flex: 1; 
+              min-width: 0;
+            }
+            .app-title { 
+              font-size: 16px; 
+              font-weight: bold; 
+              margin: 0 0 4px 0; 
+              color: #00FF94; 
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .app-desc { 
+              font-size: 13px; 
+              margin: 0 0 8px 0; 
+              opacity: 0.9; 
+              line-height: 1.3;
+            }
+            .app-button { 
+              background: #00FF94; 
+              color: #000; 
+              padding: 6px 12px; 
+              border-radius: 6px; 
+              text-decoration: none; 
+              font-weight: bold; 
+              display: inline-block;
+              font-size: 12px;
+            }
+            @media (max-width: 400px) {
+              .container { flex-direction: column; text-align: center; }
+              .image { width: 150px; height: 150px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <img src="${imageUrl}" class="image" alt="${mintedNFT.name}" onerror="this.style.display='none'">
+            <div class="app-info">
+              <div class="app-title">${mintedNFT.name}</div>
+              <div class="app-desc">I just minted this Phunk on Base! ⚡️</div>
+              <a href="${APP_URL}" class="app-button" target="_blank">Mint Yours</a>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    // Encode the HTML and create the Warpcast URL
+    const encodedHtml = encodeURIComponent(embedHtml);
+    const dataUri = `data:text/html;charset=utf-8,${encodedHtml}`;
+    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(dataUri)}`;
     
     window.open(url, '_blank');
   };
 
   return (
     <div className="pt-20 pb-24 px-4 max-w-md mx-auto min-h-screen flex flex-col relative">
+      {/* Message Display */}
+      {msg && (
+        <div className={`fixed top-20 left-4 right-4 z-50 p-3 rounded-lg text-sm font-bold animate-in fade-in duration-200 ${
+          msgType === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+          msgType === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+          'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+        }`}>
+          {msg}
+        </div>
+      )}
+
       <div className="flex justify-center mb-6">
         <div className="bg-gray-900 rounded-full px-4 py-1 border border-gray-800">
-          <span className="text-gray-400 text-xs font-mono tracking-widest">SUPPLY: {stats.supply} / {stats.maxSupply}</span>
+          <span className="text-gray-400 text-xs font-mono tracking-widest">SUPPLY: {stats.totalSupply} / {stats.maxSupply}</span>
         </div>
       </div>
 

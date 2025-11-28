@@ -50,101 +50,49 @@ const megapotFetch = async (endpoint: string, options: RequestInit = {}) => {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
     'apikey': MEGAPOT_API_KEY,
-    ...options.headers
-  };
-  return fetch(url, { ...options, headers });
-};
-
-// ============== ACTIVE JACKPOT STATS ==============
-export const getRaffleStats = async (): Promise<RaffleStats> => {
-  try {
-    const response = await megapotFetch('/jackpot-round-stats/active?chainId=8453');
-    
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    const now = Date.now();
-    const endTimestamp = parseInt(data.endTimestamp) || (now + 86400000);
-    const timeLeft = Math.max(0, Math.floor((endTimestamp - now) / 1000));
-    
-    return {
-      potSizeUSD: parseFloat(data.prizeUsd) || 0,
-      timeLeftSeconds: timeLeft,
-      currentRoundId: data.roundId || 0,
-      ticketCost: (Number(data.ticketPrice) || 1000000) / 1000000,
-      ticketsSoldCount: data.ticketsSoldCount || 0,
-      oddsPerTicket: data.oddsPerTicket || "0",
-      activePlayers: data.activePlayers || 0,
-      feeBps: data.feeBps || 3000,
-      referralFeeBps: data.referralFeeBps || 1000,
-      endTimestamp
-    };
-  } catch (e) {
-    console.error("getRaffleStats error:", e);
-    return {
-      potSizeUSD: 0,
-      timeLeftSeconds: 86400,
-      currentRoundId: 0,
-      ticketCost: 1.0,
-      ticketsSoldCount: 0,
-      oddsPerTicket: "0",
-      activePlayers: 0,
-      feeBps: 3000,
-      referralFeeBps: 1000,
-      endTimestamp: Date.now() + 86400000
-    };
-  }
-};
-
-// ============== JACKPOT HISTORY / WINNERS ==============
-export const getRecentWinners = async (limit: number = 10): Promise<Winner[]> => {
-  try {
     const response = await megapotFetch('/jackpot-history');
-    if (!response.ok) return [];
-    
+    if(!response.ok) return [];
+
     const data = await response.json();
     const winners: Winner[] = [];
-    
-    if (Array.isArray(data)) {
+
+    if(Array.isArray(data)) {
       for (const round of data.slice(0, limit)) {
-        if (round.jackpot && round.jackpot.winAmount) {
-          let winnerAddress = "0x0000000000000000000000000000000000000000";
-          if (round.ticketPurchases?.length > 0) {
-            const lastPurchase = round.ticketPurchases[round.ticketPurchases.length - 1];
-            winnerAddress = lastPurchase?.recipient || lastPurchase?.buyer || winnerAddress;
-          }
-          
-          winners.push({
-            roundId: round.jackpot.blockNumberEnd || 0,
-            address: winnerAddress,
-            prize: (parseInt(round.jackpot.winAmount) || 0) / 1000000,
-            timestamp: parseInt(round.jackpot.time) * 1000,
-            txHash: round.jackpot.txHash,
-            ticketCount: round.jackpot.ticketPurchasedCount
-          });
-        }
+    if (round.jackpot && round.jackpot.winAmount) {
+      let winnerAddress = "0x0000000000000000000000000000000000000000";
+      if (round.ticketPurchases?.length > 0) {
+        const lastPurchase = round.ticketPurchases[round.ticketPurchases.length - 1];
+        winnerAddress = lastPurchase?.recipient || lastPurchase?.buyer || winnerAddress;
       }
+
+      winners.push({
+        roundId: round.jackpot.blockNumberEnd || 0,
+        address: winnerAddress,
+        prize: (parseInt(round.jackpot.winAmount) || 0) / 1000000,
+        timestamp: parseInt(round.jackpot.time) * 1000,
+        txHash: round.jackpot.txHash,
+        ticketCount: round.jackpot.ticketPurchasedCount
+      });
     }
-    return winners;
-  } catch (e) {
-    console.error("getRecentWinners error:", e);
-    return [];
   }
+}
+return winners;
+  } catch (e) {
+  console.error("getRecentWinners error:", e);
+  return [];
+}
 };
 
 // ============== USER DATA ==============
 export const getUserRaffleData = async (address: string): Promise<UserRaffleStats> => {
   const addr = address.toLowerCase();
-  
+
   try {
     // 1. Check free ticket eligibility
     const eligibilityRes = await megapotFetch(`/giveaways/daily-ticket-pool/${addr}`);
     let freeTicketClaimed = false;
     let nextEligibleAt = 0;
-    
+
     if (eligibilityRes.ok) {
       const eligibility = await eligibilityRes.json();
       freeTicketClaimed = !eligibility.eligible;
@@ -152,7 +100,7 @@ export const getUserRaffleData = async (address: string): Promise<UserRaffleStat
         nextEligibleAt = new Date(eligibility.nextEligibleAt).getTime();
       }
     }
-    
+
     // 2. Get ticket purchases
     let tickets = 0;
     let ticketsBps = 0;
@@ -168,15 +116,15 @@ export const getUserRaffleData = async (address: string): Promise<UserRaffleStat
         }
       }
     } catch (e) { /* ignore */ }
-    
+
     // 3. Get localStorage timestamp for 24h timer
     const lastClaim = localStorage.getItem(`megapot_claim_${addr}`);
     const lastClaimTimestamp = lastClaim ? parseInt(lastClaim) : 0;
-    
+
     if (freeTicketClaimed && !nextEligibleAt && lastClaimTimestamp) {
       nextEligibleAt = lastClaimTimestamp + (24 * 60 * 60 * 1000);
     }
-    
+
     return {
       tickets,
       ticketsBps,
@@ -190,7 +138,7 @@ export const getUserRaffleData = async (address: string): Promise<UserRaffleStat
     const lastClaim = localStorage.getItem(`megapot_claim_${addr}`);
     const lastClaimTimestamp = lastClaim ? parseInt(lastClaim) : 0;
     const isClaimed = lastClaimTimestamp > 0 && (Date.now() - lastClaimTimestamp) < (24 * 60 * 60 * 1000);
-    
+
     return {
       tickets: 0,
       ticketsBps: 0,
@@ -205,20 +153,20 @@ export const getUserRaffleData = async (address: string): Promise<UserRaffleStat
 // ============== FREE TICKET CLAIM (Giveaway API) ==============
 export const claimDailyFreeTicket = async (address: string): Promise<FreeClaimResult> => {
   const addr = address.toLowerCase();
-  
+
   try {
     const response = await megapotFetch(`/giveaways/daily-ticket-pool/${addr}`, {
       method: 'POST',
       body: JSON.stringify({ refBypass: false })
     });
-    
+
     const data = await response.json();
-    
+
     if (!response.ok || !data.eligible) {
-      const nextEligible = data.nextEligibleAt 
-        ? new Date(data.nextEligibleAt).getTime() 
+      const nextEligible = data.nextEligibleAt
+        ? new Date(data.nextEligibleAt).getTime()
         : Date.now() + (6 * 60 * 60 * 1000);
-      
+
       return {
         success: false,
         message: data.error || 'Not eligible yet. Try again later.',
@@ -226,10 +174,10 @@ export const claimDailyFreeTicket = async (address: string): Promise<FreeClaimRe
         currentRoundId: data.currentRoundId
       };
     }
-    
+
     const now = Date.now();
     localStorage.setItem(`megapot_claim_${addr}`, now.toString());
-    
+
     return {
       success: true,
       message: 'Free ticket claimed!',
@@ -255,13 +203,13 @@ export const encodePurchaseTickets = (
 ): string => {
   // purchaseTickets(address referrer, uint256 value, address recipient)
   const selector = "0x7d9a7a4c";
-  
+
   const cleanReferrer = referrer.replace('0x', '').toLowerCase().padStart(64, '0');
   const cleanRecipient = recipient.replace('0x', '').toLowerCase().padStart(64, '0');
-  
+
   const rawValue = Math.floor(valueUSDC * 1000000);
   const hexValue = rawValue.toString(16).padStart(64, '0');
-  
+
   return `${selector}${cleanReferrer}${hexValue}${cleanRecipient}`;
 };
 
@@ -271,13 +219,13 @@ export const prepareBuyTransaction = (
   ticketPrice: number = 1
 ) => {
   const totalUSDC = ticketCount * ticketPrice;
-  
+
   const data = encodePurchaseTickets(
     REFERRAL_ADDRESS,
     totalUSDC,
     userAddress
   );
-  
+
   return {
     to: MEGAPOT_CONTRACT_ADDRESS,
     from: userAddress,
@@ -301,7 +249,7 @@ export const prepareApproveTransaction = (
   amount: number
 ) => {
   const data = encodeApprove(MEGAPOT_CONTRACT_ADDRESS, amount);
-  
+
   return {
     to: USDC_CONTRACT_ADDRESS,
     from: userAddress,
@@ -320,7 +268,7 @@ export const checkUSDCAllowance = async (
     const owner = userAddress.replace('0x', '').toLowerCase().padStart(64, '0');
     const spender = MEGAPOT_CONTRACT_ADDRESS.replace('0x', '').toLowerCase().padStart(64, '0');
     const data = `${selector}${owner}${spender}`;
-    
+
     const response = await fetch('https://base.llamarpc.com', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -331,7 +279,7 @@ export const checkUSDCAllowance = async (
         params: [{ to: USDC_CONTRACT_ADDRESS, data }, 'latest']
       })
     });
-    
+
     const result = await response.json();
     if (result.result) {
       return parseInt(result.result, 16) / 1000000;
@@ -342,3 +290,6 @@ export const checkUSDCAllowance = async (
     return 0;
   }
 };
+
+// Backward compatibility
+export const getUserInfo = getUserRaffleData;

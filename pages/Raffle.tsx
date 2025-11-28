@@ -3,7 +3,7 @@ import { Clock, Ticket, Trophy, Zap, Loader2, History, PlayCircle, Share2, Alert
 import { useWallet } from '../hooks/useWallet';
 import { 
   getRaffleStats, 
-  getUserRaffleData, 
+  getUserInfo, 
   claimDailyFreeTicket, 
   prepareBuyTransaction, 
   prepareApproveTransaction,
@@ -65,7 +65,7 @@ const Raffle: React.FC = () => {
         setWinners(w);
         
         if (wallet.address && wallet.connected) {
-          const u = await getUserRaffleData(wallet.address);
+          const u = await getUserInfo(wallet.address);
           setUserData(u);
           
           const allowance = await checkUSDCAllowance(wallet.address);
@@ -231,7 +231,7 @@ const Raffle: React.FC = () => {
     
     setBuying(true);
     try {
-      const txParams = prepareBuyTransaction(buyAmount, wallet.address, stats.ticketCost);
+      const txParams = prepareBuyTransaction(buyAmount, wallet.address);
       await (window as any).ethereum.request({
         method: 'eth_sendTransaction',
         params: [txParams],
@@ -240,7 +240,7 @@ const Raffle: React.FC = () => {
       
       // Refresh user data
       setTimeout(async () => {
-        const u = await getUserRaffleData(wallet.address!);
+        const u = await getUserInfo(wallet.address!);
         setUserData(u);
       }, 3000);
     } catch (e: any) {

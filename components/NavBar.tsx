@@ -38,7 +38,7 @@ const NavBar: React.FC<NavBarProps> = ({ activePage, setPage }) => {
               className="flex flex-col items-center gap-1 bg-transparent border-none cursor-pointer group"
             >
               {getIcon(item.icon, isActive)}
-              <span className={`text-[10px] font-bold ${isActive ? 'text-neon shadow-neon' : 'text-gray-600'} tracking-wider`}>
+              <span className={`text-[10px] font-bold ${isActive ? 'text-neon' : 'text-gray-600'} tracking-wider`}>
                 {item.label}
               </span>
             </button>
