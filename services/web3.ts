@@ -46,8 +46,19 @@ interface CollectionStats {
   price: number;
 }
 
+// Cache for collection stats to avoid rate limiting
+let cachedStats: CollectionStats | null = null;
+let lastCacheTime = 0;
+const CACHE_DURATION = 60000; // 1 minute cache
+
 export const fetchCollectionStats = async (): Promise<CollectionStats> => {
   try {
+    // Return cached data if still valid
+    if (cachedStats && Date.now() - lastCacheTime < CACHE_DURATION) {
+      console.log('Returning cached collection stats:', cachedStats);
+      return cachedStats;
+    }
+
     const batchBody = [
       {
         jsonrpc: '2.0',
@@ -95,17 +106,42 @@ export const fetchCollectionStats = async (): Promise<CollectionStats> => {
 
     console.log('NFT Contract Responses:', { totalSupplyRes, maxSupplyRes, costRes });
 
+    // Handle rate limiting errors - keep previous values
+    if (totalSupplyRes?.error?.code === -32016 || maxSupplyRes?.error?.code === -32016) {
+      console.warn('Rate limit hit, returning cached values');
+      if (cachedStats) {
+        return cachedStats;
+      }
+      // If no cache, return fallback values
+      return {
+        totalSupply: 0,
+        maxSupply: 11305,
+        price: 0.002
+      };
+    }
+
     const totalSupply = totalSupplyRes?.result && totalSupplyRes.result !== '0x' ? hexToDecimal(totalSupplyRes.result) : 0;
     const maxSupply = maxSupplyRes?.result && maxSupplyRes.result !== '0x' ? hexToDecimal(maxSupplyRes.result) : 11305;
     const price = costRes?.result && costRes.result !== '0x' ? hexToEth(costRes.result) : 0.002;
 
-    return {
+    const stats = {
       totalSupply,
       maxSupply,
       price
     };
+
+    // Cache the successful result
+    cachedStats = stats;
+    lastCacheTime = Date.now();
+
+    return stats;
   } catch (error) {
     console.error("Error fetching collection stats:", error);
+    // Return cached values if available, otherwise fallback
+    if (cachedStats) {
+      console.log('Returning cached stats due to error:', cachedStats);
+      return cachedStats;
+    }
     // Return fallback values instead of throwing
     return {
       totalSupply: 0,

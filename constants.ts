@@ -4,8 +4,8 @@ export const BASE_CHAIN_ID = 8453;
 export const EXPLORER_URL = "https://basescan.org";
 export const APP_URL = "https://fcphunksmini.vercel.app";
 
-// RPC - Using LlamaRPC for better public access and CORS handling
-export const RPC_URL = "https://base.llamarpc.com";
+// RPC - Using official Base RPC for better reliability
+export const RPC_URL = "https://mainnet.base.org";
 export const IPFS_GATEWAY = "https://ipfs.io/ipfs/bafybeibu47rax5yr4bdkl7gxqttyumkf54pl3jvwxdnxqbfqfytd6qfcvi/";
 
 // Safe Environment Variable Access

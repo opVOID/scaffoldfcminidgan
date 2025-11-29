@@ -116,6 +116,29 @@ export const useWallet = () => {
           chainId: parseInt(chainId, 16)
         }));
       });
+
+      // Check if already connected on mount
+      const checkExistingConnection = async () => {
+        try {
+          const accounts = await provider.request({ method: 'eth_accounts' });
+          if (accounts.length > 0) {
+            const chainId = parseInt(await provider.request({ method: 'eth_chainId' }), 16);
+            const walletName = getWalletName(provider);
+            
+            console.log('Found existing connection:', accounts[0]);
+            setWallet({
+              address: accounts[0],
+              chainId,
+              connected: true,
+              providerName: walletName,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to check existing connection:', error);
+        }
+      };
+
+      checkExistingConnection();
     }
   }, []);
 

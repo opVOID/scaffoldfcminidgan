@@ -1,3 +1,4 @@
+import './polyfills';
 import React, { useState, useEffect } from 'react';
 import { useWallet } from './hooks/useWallet';
 import { PageType } from './types';

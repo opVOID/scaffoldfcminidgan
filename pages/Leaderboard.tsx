@@ -18,46 +18,33 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
   const [loading, setLoading] = useState(false);
   const [checkInMsg, setCheckInMsg] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
-  
+
   // Timer state
   const [timeLeft, setTimeLeft] = useState<string>('');
   const [isCooldown, setIsCooldown] = useState(false);
 
-  // dwr.eth Real Data State
-  const [dwrProfile, setDwrProfile] = useState<FarcasterProfile>({
-      username: 'dwr.eth',
-      fid: 244, // Fallback/Default
-      pfp: 'https://i.imgur.com/I2rEbPF.jpeg' // Fallback
-  });
-
   useEffect(() => {
     const loadData = async () => {
-        // Load dwr.eth data (dwr.eth address: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)
-        const dwrReal = await fetchFarcasterProfile("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
-        if (dwrReal) {
-            setDwrProfile(dwrReal);
+      if (wallet.address && wallet.connected) {
+        setLoading(true);
+        // Load DB Data
+        const dbData = await getUserData(wallet.address);
+
+        // Try to fetch latest Farcaster data if missing
+        if (!dbData.farcaster) {
+          const fcProfile = await fetchFarcasterProfile(wallet.address);
+          if (fcProfile) dbData.farcaster = fcProfile;
         }
 
-        if (wallet.address && wallet.connected) {
-          setLoading(true);
-          // Load DB Data
-          const dbData = await getUserData(wallet.address);
-          
-          // Try to fetch latest Farcaster data if missing
-          if (!dbData.farcaster) {
-             const fcProfile = await fetchFarcasterProfile(wallet.address);
-             if (fcProfile) dbData.farcaster = fcProfile;
-          }
+        setUserData(dbData);
 
-          setUserData(dbData);
-          
-          // Load Web3 Data for Points
-          const nfts = await fetchUserNFTs(wallet.address);
-          setNftCount(nfts.length);
-          const animated = nfts.filter(n => n.isAnimated).length;
-          setAnimatedCount(animated);
-          setLoading(false);
-        }
+        // Load Web3 Data for Points
+        const nfts = await fetchUserNFTs(wallet.address);
+        setNftCount(nfts.length);
+        const animated = nfts.filter(n => n.isAnimated).length;
+        setAnimatedCount(animated);
+        setLoading(false);
+      }
     };
     loadData();
   }, [wallet.address, wallet.connected]);
@@ -65,26 +52,26 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
   // Timer Effect
   useEffect(() => {
     const updateTimer = () => {
-        if (userData.lastCheckIn === 0) {
-            setTimeLeft('');
-            setIsCooldown(false);
-            return;
-        }
+      if (userData.lastCheckIn === 0) {
+        setTimeLeft('');
+        setIsCooldown(false);
+        return;
+      }
 
-        const now = Date.now();
-        const nextCheckIn = userData.lastCheckIn + (24 * 60 * 60 * 1000);
-        const diff = nextCheckIn - now;
+      const now = Date.now();
+      const nextCheckIn = userData.lastCheckIn + (24 * 60 * 60 * 1000);
+      const diff = nextCheckIn - now;
 
-        if (diff <= 0) {
-            setTimeLeft('');
-            setIsCooldown(false);
-        } else {
-            setIsCooldown(true);
-            const h = Math.floor(diff / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((diff % (1000 * 60)) / 1000);
-            setTimeLeft(`${h}h:${m < 10 ? '0'+m : m}m:${s < 10 ? '0'+s : s}s`);
-        }
+      if (diff <= 0) {
+        setTimeLeft('');
+        setIsCooldown(false);
+      } else {
+        setIsCooldown(true);
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft(`${h}h:${m < 10 ? '0' + m : m}m:${s < 10 ? '0' + s : s}s`);
+      }
     };
 
     updateTimer();
@@ -97,13 +84,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
       onConnect();
       return;
     }
-    
+
     setCheckingIn(true);
     const result = await checkInUser(wallet.address);
     setUserData(result.data);
     setCheckInMsg(result.message);
     setCheckingIn(false);
-    
+
     setTimeout(() => setCheckInMsg(''), 3000);
   };
 
@@ -111,11 +98,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
 
   // Helper for rank icon
   const getRankIcon = (rank: number) => {
-    switch(rank) {
-        case 1: return <span className="text-2xl">🏆</span>;
-        case 2: return <span className="text-2xl">🥈</span>;
-        case 3: return <span className="text-2xl">🥉</span>;
-        default: return <span className="text-gray-500 font-bold">#{rank}</span>;
+    switch (rank) {
+      case 1: return <span className="text-2xl">🏆</span>;
+      case 2: return <span className="text-2xl">🥈</span>;
+      case 3: return <span className="text-2xl">🥉</span>;
+      default: return <span className="text-gray-500 font-bold">#{rank}</span>;
     }
   };
 
@@ -126,7 +113,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
       {/* Daily Check-in Card */}
       <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 mb-6 shadow-lg relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-purple-900/10 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110 duration-500"></div>
-        
+
         <div className="flex justify-between items-start mb-4 relative z-10">
           <div>
             <h2 className="text-xl font-bold text-white">Daily Check-in</h2>
@@ -138,27 +125,26 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
           </div>
         </div>
 
-        <button 
-          className={`w-full py-4 rounded-xl font-bold text-sm tracking-wider uppercase transition-all flex items-center justify-center gap-2 ${
-            wallet.connected && !checkingIn && !isCooldown
-              ? 'bg-purple-700 hover:bg-purple-600 text-white shadow-[0_4px_0_#3b0764] active:shadow-none active:translate-y-[4px]'
-              : 'bg-[#1F2937] text-gray-400 cursor-not-allowed'
-          }`}
+        <button
+          className={`w-full py-4 rounded-xl font-bold text-sm tracking-wider uppercase transition-all flex items-center justify-center gap-2 ${wallet.connected && !checkingIn && !isCooldown
+            ? 'bg-purple-700 hover:bg-purple-600 text-white shadow-[0_4px_0_#3b0764] active:shadow-none active:translate-y-[4px]'
+            : 'bg-[#1F2937] text-gray-400 cursor-not-allowed'
+            }`}
           onClick={handleCheckIn}
           disabled={checkingIn || isCooldown}
         >
           {checkingIn ? (
-              'CHECKING IN...' 
+            'CHECKING IN...'
           ) : isCooldown ? (
-              <>
-                <Clock size={16} /> Next: {timeLeft}
-              </>
+            <>
+              <Clock size={16} /> Next: {timeLeft}
+            </>
           ) : checkInMsg ? (
-              checkInMsg 
+            checkInMsg
           ) : wallet.connected ? (
-              'CHECK IN NOW' 
+            'CHECK IN NOW'
           ) : (
-              'Connect Wallet to Check In'
+            'Connect Wallet to Check In'
           )}
         </button>
       </div>
@@ -166,110 +152,53 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
       {/* User Stats Card */}
       {wallet.connected && (
         <div className="bg-[#0a0a0a] border border-neon/20 rounded-2xl p-4 mb-6 grid grid-cols-3 gap-2 text-center">
-            <div className="p-2">
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">XP</p>
-                <p className="text-xl font-bold text-white">{userData.xp}</p>
-            </div>
-            <div className="p-2 border-l border-gray-800">
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">NFTs</p>
-                <p className="text-xl font-bold text-white">{loading ? '...' : nftCount}</p>
-            </div>
-            <div className="p-2 border-l border-gray-800">
-                <p className="text-[10px] text-neon uppercase tracking-widest mb-1 font-bold">Total</p>
-                <p className="text-xl font-bold text-neon">{loading ? '...' : totalScore}</p>
-            </div>
+          <div className="p-2">
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">XP</p>
+            <p className="text-xl font-bold text-white">{userData.xp}</p>
+          </div>
+          <div className="p-2 border-l border-gray-800">
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">NFTs</p>
+            <p className="text-xl font-bold text-white">{loading ? '...' : nftCount}</p>
+          </div>
+          <div className="p-2 border-l border-gray-800">
+            <p className="text-[10px] text-neon uppercase tracking-widest mb-1 font-bold">Total</p>
+            <p className="text-xl font-bold text-neon">{loading ? '...' : totalScore}</p>
+          </div>
         </div>
       )}
 
       {/* Leaderboard List */}
       <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 min-h-[300px] flex flex-col items-center text-center relative overflow-hidden">
-           <div className="w-full space-y-3 z-10">
-             <div className="flex justify-between items-center text-xs text-gray-500 font-bold uppercase tracking-wider mb-2 px-2">
-                 <span>Rank</span>
-                 <span>Score</span>
-             </div>
+        <div className="w-full space-y-3 z-10">
+          <div className="flex justify-between items-center text-xs text-gray-500 font-bold uppercase tracking-wider mb-2 px-2">
+            <span>Rank</span>
+            <span>Score</span>
+          </div>
 
-             {/* Mock User #1 - dwr.eth (Real Fetch) */}
-             <div className="flex items-center justify-between bg-black/50 p-3 rounded-lg border border-gray-800/50 hover:border-gray-700 transition-colors">
-                 <div className="flex items-center gap-3">
-                   <div className="w-8 flex justify-center">
-                       {getRankIcon(1)}
-                   </div>
-                   <div className="relative">
-                       <img 
-                           src={dwrProfile.pfp} 
-                           alt="PFP" 
-                           className="w-8 h-8 rounded-full border border-neon object-cover" 
-                       />
-                   </div>
-                   <div className="text-left">
-                       <div className="flex items-center gap-2">
-                           <a href={`https://warpcast.com/${dwrProfile.username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white font-bold hover:text-neon hover:underline">
-                               {dwrProfile.username}
-                           </a>
-                           <span className="text-[10px] text-gray-500 bg-gray-800 px-1 rounded flex items-center">
-                             FID: {dwrProfile.fid}
-                           </span>
-                       </div>
-                       <p className="text-[10px] text-gray-500 font-mono">0xd8dA...6045</p>
-                   </div>
-                 </div>
-                 <span className="text-sm font-mono text-neon font-bold">1337 Pts</span>
-             </div>
+          {wallet.connected ? (
+            <div className="flex items-center justify-between bg-neon/5 p-3 rounded-lg border border-neon/30">
+              <div className="flex items-center gap-3">
+                <div className="w-8 flex justify-center">
+                  {getRankIcon(1)}
+                </div>
+                <div className="text-left">
+                  <p className="text-sm text-white font-mono">
+                    {wallet.address ? `${wallet.address.substring(0, 6)}...${wallet.address.substring(38)}` : ''}
+                  </p>
+                </div>
+              </div>
+              <span className="text-sm font-mono text-neon font-bold">{totalScore} Pts</span>
+            </div>
+          ) : (
+            <div className="py-12 text-center">
+              <p className="text-gray-500 text-sm mb-4">Connect your wallet to see your rank</p>
+              <button onClick={onConnect} className="bg-neon text-black px-6 py-2 rounded-lg font-bold hover:bg-white transition-colors">
+                Connect Wallet
+              </button>
+            </div>
+          )}
+        </div>
 
-             {/* Other Ranks (Static) */}
-             {[2, 3, 4, 5].map((rank) => (
-               <div key={rank} className="flex items-center justify-between bg-black/50 p-3 rounded-lg border border-gray-800/50 hover:border-gray-700 transition-colors">
-                 <div className="flex items-center gap-3">
-                   <div className="w-8 flex justify-center">
-                       {getRankIcon(rank)}
-                   </div>
-                   <div className="w-8 h-8 bg-gray-800 rounded-full border border-gray-700 flex items-center justify-center text-xs text-gray-500">
-                      {rank}
-                   </div>
-                   <div className="text-left">
-                       <p className="text-sm text-gray-300 font-mono">0x...{1000 + rank}</p>
-                   </div>
-                 </div>
-                 <span className="text-sm font-mono text-gray-400">{(6-rank) * 125} Pts</span>
-               </div>
-             ))}
-             
-             {wallet.connected && (
-                 <>
-                     <div className="w-full h-px bg-gray-800 my-4"></div>
-                     <div className="flex items-center justify-between bg-neon/5 p-3 rounded-lg border border-neon/30">
-                         <div className="flex items-center gap-3">
-                           <div className="w-8 text-center font-mono font-bold text-white text-xs">#99</div>
-                           {userData.farcaster ? (
-                                <img src={userData.farcaster.pfp} className="w-8 h-8 rounded-full border border-neon/50 object-cover" />
-                           ) : (
-                                <div className="w-8 h-8 bg-neon/20 rounded-full border border-neon/30 flex items-center justify-center text-xs text-neon">You</div>
-                           )}
-                           <div className="text-left">
-                               {userData.farcaster ? (
-                                   <div className="flex items-center gap-2">
-                                       <a href={`https://warpcast.com/${userData.farcaster.username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-white font-bold hover:text-neon hover:underline">
-                                           {userData.farcaster.username}
-                                       </a>
-                                       <span className="text-[10px] text-gray-500 bg-gray-800 px-1 rounded">
-                                         FID: {userData.farcaster.fid}
-                                       </span>
-                                   </div>
-                               ) : (
-                                   <p className="text-sm text-white font-bold">You</p>
-                               )}
-                               <p className="text-[10px] text-gray-500 font-mono">
-                                   {wallet.address ? `${wallet.address.substring(0,4)}...${wallet.address.substring(38)}` : ''}
-                               </p>
-                           </div>
-                         </div>
-                         <span className="text-sm font-mono text-neon font-bold">{totalScore} Pts</span>
-                     </div>
-                 </>
-             )}
-           </div>
-        
         {/* Decorative grid background */}
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none"></div>
       </div>
