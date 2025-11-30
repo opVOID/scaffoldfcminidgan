@@ -1,33 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Ticket, Trophy, Zap, Loader2, History, PlayCircle, Share2, AlertCircle, CheckCircle, TrendingUp, Droplets, Settings, ArrowUp, ArrowDown, DollarSign } from 'lucide-react';
+import { Clock, Ticket, Trophy, Zap, Loader2, History, PlayCircle, Share2, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
 import { useWallet } from '../hooks/useWallet';
 import {
   getRaffleStats,
   getUserInfo,
   claimDailyFreeTicket,
+  checkDailyTicketEligibility,
   prepareBuyTransaction,
   prepareApproveTransaction,
   checkUSDCAllowance,
   getRecentWinners,
+  getJackpotWinners,
+  getLastJackpotWinner,
   waitForTransactionReceipt,
-  getLpPoolStatus,
-  getMinLpDeposit,
-  getLpsInfo,
   getUsdcBalance,
-  prepareLpDepositTransaction,
-  prepareLpAdjustRiskTransaction,
-  prepareLpWithdrawTransaction,
+  getOverallStats,
+  getHistoricalJackpotWinners,
   Winner,
   RaffleStats,
   UserRaffleStats,
-  LpPoolStatus,
-  LpInfo
+  OverallStats,
+  HistoricalJackpotWinner
 } from '../services/megapot';
 import { MEGAPOT_LOGO_URL, APP_URL } from '../constants';
 
 const Raffle: React.FC = () => {
   const { wallet, connect } = useWallet();
-  const [activeTab, setActiveTab] = useState<'play' | 'liquidity'>('play');
+  const [activeTab, setActiveTab] = useState<'play' | 'history'>('play');
 
   // Stats state
   const [stats, setStats] = useState<RaffleStats>({
@@ -53,31 +52,67 @@ const Raffle: React.FC = () => {
   });
 
   const [winners, setWinners] = useState<Winner[]>([]);
+  const [jackpotWinners, setJackpotWinners] = useState<Winner[]>([]);
+  const [lastJackpotWinner, setLastJackpotWinner] = useState<Winner | null>(null);
+  const [overallStats, setOverallStats] = useState<OverallStats | null>(null);
+  const [historicalJackpotWinners, setHistoricalJackpotWinners] = useState<HistoricalJackpotWinner[]>([]);
   const [loadingWinners, setLoadingWinners] = useState(true);
+  const [loadingJackpotWinners, setLoadingJackpotWinners] = useState(true);
+  const [loadingLastJackpot, setLoadingLastJackpot] = useState(true);
+  const [loadingOverallStats, setLoadingOverallStats] = useState(true);
+  const [loadingHistoricalJackpots, setLoadingHistoricalJackpots] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [buyAmount, setBuyAmount] = useState(1);
   const [claiming, setClaiming] = useState(false);
   const [buying, setBuying] = useState(false);
   const [approving, setApproving] = useState(false);
   const [usdcAllowance, setUsdcAllowance] = useState(0);
+  const [usdcBalance, setUsdcBalance] = useState(0);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState<'success' | 'error' | 'info'>('info');
 
-  // Liquidity state
-  const [lpPoolStatus, setLpPoolStatus] = useState<boolean>(false);
-  const [lpInfo, setLpInfo] = useState<[bigint, bigint, bigint, boolean] | null>(null);
-  const [usdcBalance, setUsdcBalance] = useState(0);
-  const [lpDepositAmount, setLpDepositAmount] = useState('');
-  const [lpWithdrawAmount, setLpWithdrawAmount] = useState('');
-  const [lpRiskPercentage, setLpRiskPercentage] = useState('');
-  const [lpLoading, setLpLoading] = useState(false);
-  const [lpDepositing, setLpDepositing] = useState(false);
-  const [lpWithdrawing, setLpWithdrawing] = useState(false);
-  const [lpAdjusting, setLpAdjusting] = useState(false);
-  const [minLpDeposit, setMinLpDeposit] = useState(0);
-
   // 24h Countdown state
   const [claimCooldownTime, setClaimCooldownTime] = useState('');
+  
+  // History expansion state
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+
+  // Helper functions for history display
+  const toggleDayExpansion = (date: string) => {
+    setExpandedDays(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(date)) {
+        newSet.delete(date);
+      } else {
+        newSet.add(date);
+      }
+      return newSet;
+    });
+  };
+
+  const groupWinnersByDate = (winners: Winner[]) => {
+    const grouped: { [date: string]: Winner[] } = {};
+    
+    winners.forEach(winner => {
+      const date = new Date(winner.timestamp).toLocaleDateString();
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(winner);
+    });
+    
+    return grouped;
+  };
+
+  // Detect chain using isWorldApp field from API (reliable method)
+  // isWorldApp: true = World chain, false = Base chain
+  const getChainInfo = (isWorldApp?: boolean) => {
+    if (isWorldApp === true) {
+      return { name: 'World', explorer: 'worldscan.org' };
+    } else {
+      return { name: 'Base', explorer: 'basescan.org' };
+    }
+  };
 
   // Initialize basic data (runs once on mount)
   useEffect(() => {
@@ -90,6 +125,26 @@ const Raffle: React.FC = () => {
         const w = await getRecentWinners();
         setWinners(w);
         setLoadingWinners(false);
+        
+        // Also fetch jackpot winners
+        const jw = await getJackpotWinners();
+        setJackpotWinners(jw);
+        setLoadingJackpotWinners(false);
+        
+        // Also fetch last jackpot winner
+        const ljw = await getLastJackpotWinner();
+        setLastJackpotWinner(ljw);
+        setLoadingLastJackpot(false);
+        
+        // Fetch overall statistics
+        const os = await getOverallStats();
+        setOverallStats(os);
+        setLoadingOverallStats(false);
+        
+        // Fetch historical jackpot winners
+        const hjw = await getHistoricalJackpotWinners(15);
+        setHistoricalJackpotWinners(hjw);
+        setLoadingHistoricalJackpots(false);
       } catch (e) {
         console.error('Basic init error:', e);
       }
@@ -140,30 +195,9 @@ const Raffle: React.FC = () => {
         setUsdcAllowance(allowance);
         console.log('Final allowance set:', allowance);
 
-        // Load liquidity data with error handling
-        try {
-          const poolStatus = await getLpPoolStatus();
-          console.log('LP Pool Status:', poolStatus);
-          setLpPoolStatus(poolStatus);
-        } catch (error) {
-          console.error('Failed to load LP pool status:', error);
-          setLpPoolStatus(false); // Default to closed
-        }
-
-        try {
-          const lpUser = await getLpsInfo(wallet.address);
-          console.log('LP User Info:', lpUser);
-          setLpInfo(lpUser);
-        } catch (error) {
-          console.error('Failed to load LP user info:', error);
-          setLpInfo(null); // Default to no LP data
-        }
-
+        // Get USDC balance
         const balance = await getUsdcBalance(wallet.address);
         setUsdcBalance(balance);
-
-        const minDeposit = await getMinLpDeposit();
-        setMinLpDeposit(minDeposit);
 
         // Final allowance check after 2 seconds to ensure it's correct
         setTimeout(async () => {
@@ -186,15 +220,11 @@ const Raffle: React.FC = () => {
     initWalletData();
   }, [wallet.address, wallet.connected]);
 
-  // Poll stats and LP data every 30s
+  // Poll stats every 30s
   useEffect(() => {
     const poll = setInterval(async () => {
       const s = await getRaffleStats();
       setStats(s);
-      
-      // Also poll LP data
-      const poolStatus = await getLpPoolStatus();
-      setLpPoolStatus(poolStatus);
     }, 30000);
 
     // Countdown timer every 1s
@@ -270,6 +300,13 @@ const Raffle: React.FC = () => {
       return;
     }
 
+    // Check eligibility first
+    const eligibilityCheck = await checkDailyTicketEligibility(wallet.address);
+    if (!eligibilityCheck.success) {
+      showMessage(eligibilityCheck.message || 'Not eligible for free ticket', 'error');
+      return;
+    }
+
     setClaiming(true);
 
     // Open share intent
@@ -278,9 +315,11 @@ const Raffle: React.FC = () => {
     const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(APP_URL)}`;
     window.open(shareUrl, '_blank');
 
-    // Claim after short delay
+    // Claim after short delay with referrer for referral rewards
     setTimeout(async () => {
-      const res = await claimDailyFreeTicket(wallet.address!);
+      // Pass referrer address for referral rewards (using wallet address as self-referrer for now)
+      const referrerAddress = wallet.address; // TODO: Get actual referrer from URL params or storage
+      const res = await claimDailyFreeTicket(wallet.address!, referrerAddress);
       setClaiming(false);
 
       if (res.success) {
@@ -406,11 +445,11 @@ const Raffle: React.FC = () => {
           <PlayCircle size={14} /> Play
         </button>
         <button
-          onClick={() => setActiveTab('liquidity')}
-          className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeTab === 'liquidity' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'
+          onClick={() => setActiveTab('history')}
+          className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${activeTab === 'history' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'
             }`}
         >
-          <Droplets size={14} /> Liquidity
+          <History size={14} /> History
         </button>
       </div>
 
@@ -455,6 +494,43 @@ const Raffle: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Free Daily Ticket */}
+        <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-xl p-4 border border-green-500/30">
+          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <Zap size={14} className="text-green-300" /> Daily Free Ticket
+          </h3>
+          <div className="text-center">
+            {!wallet.connected ? (
+              <button
+                onClick={connect}
+                className="w-full py-3 rounded-xl font-bold text-sm bg-green-600 text-white hover:bg-green-500 transition-all flex items-center justify-center gap-2"
+              >
+                CONNECT TO CLAIM
+              </button>
+            ) : userData.freeTicketClaimed ? (
+              <div className="space-y-2">
+                <div className="text-green-300 text-sm font-bold">✓ Free Ticket Claimed!</div>
+                {claimCooldownTime && (
+                  <div className="text-xs text-gray-400">
+                    Next free ticket in: {claimCooldownTime}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={handleClaim}
+                disabled={claiming}
+                className="w-full py-3 rounded-xl font-bold text-sm bg-green-600 text-white hover:bg-green-500 transition-all flex items-center justify-center gap-2"
+              >
+                {claiming ? <Loader2 className="animate-spin" size={16} /> : 'Share Miniapp to claim free Ticket'}
+              </button>
+            )}
+          </div>
+          <div className="text-xs text-gray-500 mt-2 text-center">
+            Share on Farcaster to claim your daily free ticket
+          </div>
         </div>
 
         {/* Buy Tickets Card */}
@@ -519,275 +595,238 @@ const Raffle: React.FC = () => {
       </div>
     ) : (
       <div className="space-y-4">
-        {/* LP Pool Status */}
-        <div className="bg-gradient-to-br from-purple-500/20 to-blue-600/20 rounded-2xl p-4 mb-4 border border-purple-500/30">
-          <div className="flex items-center justify-between mb-3">
+        {/* Daily Prize Winners */}
+        <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-2xl p-4 mb-4 border border-green-500/30">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <TrendingUp size={14} className="text-purple-300" /> LP Pool Status
+              <Zap size={14} className="text-green-300" /> Daily Prize Winners
             </h3>
+            <span className="text-xs text-green-300 font-mono">$25/$5/$2 Prizes</span>
           </div>
-          <div className="text-center mb-4">
-            <p className="text-xs text-gray-400 mb-2">Pool Status</p>
-            <p className={`text-2xl font-bold ${lpPoolStatus ? 'text-emerald-400' : 'text-red-400'}`}>
-              {lpPoolStatus ? 'OPEN' : 'CLOSED'}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              {lpPoolStatus ? 'Liquidity deposits are currently allowed' : 'Liquidity deposits are currently disabled'}
-            </p>
-          </div>
+          
+          {loadingWinners ? (
+            <div className="text-center py-6 text-gray-400">
+              <Loader2 className="animate-spin mx-auto mb-2" size={20} />
+              <p className="text-xs font-mono">Loading Daily Winners...</p>
+            </div>
+          ) : winners.length > 0 ? (
+            <div className="space-y-3">
+              {Object.entries(groupWinnersByDate(winners)).map(([date, dayWinners]) => {
+                const isExpanded = expandedDays.has(date);
+                const totalPrize = dayWinners.reduce((sum, w) => sum + w.prize, 0);
+                
+                // Get round IDs for this day
+                const roundIds = [...new Set(dayWinners.map(w => w.roundId))];
+                const roundRange = roundIds.length === 1 
+                  ? `Round ${roundIds[0]}`
+                  : `Rounds ${Math.min(...roundIds)}-${Math.max(...roundIds)}`;
+                
+                return (
+                  <div key={date} className="bg-gray-900/50 rounded-lg border border-gray-800">
+                    {/* Day Header - Clickable */}
+                    <button
+                      onClick={() => toggleDayExpansion(date)}
+                      className="w-full p-3 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-blue-300">{roundRange}</span>
+                        <span className="text-xs font-bold text-yellow-300">{date}</span>
+                        <span className="text-xs text-gray-400">{dayWinners.length} winners</span>
+                        <span className="text-xs font-bold text-green-300">${totalPrize}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
+                          {isExpanded ? 'Click to collapse' : 'Click to expand'}
+                        </span>
+                        <History size={12} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+                    
+                    {/* Expanded Winners List */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-800">
+                        {dayWinners.map((winner, index) => (
+                          <div key={`${winner.address}-${index}`} className="p-3 border-b border-gray-800 last:border-b-0">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold text-yellow-300">#{winner.roundId}</span>
+                                <span className="text-xs text-gray-300 font-mono">
+                                  {winner.address.slice(0, 6)}...{winner.address.slice(-4)}
+                                </span>
+                                <span className="text-sm font-bold text-green-300">
+                                  ${winner.prize}
+                                </span>
+                              </div>
+                              {winner.txHash && (() => {
+                                const chainInfo = getChainInfo(winner.isWorldApp);
+                                return (
+                                  <a
+                                    href={`https://${chainInfo.explorer}/tx/${winner.txHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                    title={`View on ${chainInfo.name}`}
+                                  >
+                                    {chainInfo.name} →
+                                  </a>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-400">
+              <p className="text-xs">No daily winners yet</p>
+            </div>
+          )}
         </div>
 
-        {/* Your LP Position */}
-        {wallet.connected && lpInfo && (
-          <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
-            <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-              <DollarSign size={14} className="text-green-300" /> Your LP Position
+        {/* Overall Statistics */}
+        <div className="bg-gradient-to-br from-purple-500/20 to-blue-600/20 rounded-2xl p-4 mb-4 border border-purple-500/30">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <TrendingUp size={14} className="text-purple-300" /> Overall Statistics
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-400">Principal</p>
-                <p className="text-lg font-bold text-white">{formatCurrency(Number(lpInfo[0]) / 1000000)}</p>
+            <span className="text-xs text-purple-300 font-mono">Since July 2024</span>
+          </div>
+          
+          {loadingOverallStats ? (
+            <div className="text-center py-6 text-gray-400">
+              <Loader2 className="animate-spin mx-auto mb-2" size={20} />
+              <p className="text-xs font-mono">Loading Overall Stats...</p>
+            </div>
+          ) : overallStats ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-yellow-300">
+                    ${overallStats.totalPrizePool.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-400">Total Prizes</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-400">Position In Range</p>
-                <p className="text-lg font-bold text-green-300">{formatCurrency(Number(lpInfo[1]) / 1000000)}</p>
+              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-green-300">
+                    {overallStats.totalWinners}
+                  </p>
+                  <p className="text-xs text-gray-400">Jackpot Winners</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-400">Risk Percentage</p>
-                <p className="text-lg font-bold text-orange-300">{Number(lpInfo[2])}%</p>
+              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-blue-300">
+                    {overallStats.uniquePlayers.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-400">Unique Players</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-400">Status</p>
-                <p className="text-lg font-bold text-purple-300">{lpInfo[3] ? 'Active' : 'Inactive'}</p>
+              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-purple-300">
+                    {overallStats.totalTickets.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-400">Tickets Sold</p>
+                </div>
               </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-400">
+              <p className="text-xs">Statistics unavailable</p>
+            </div>
+          )}
+        </div>
+
+        {/* Last Jackpot Winner */}
+        <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 rounded-2xl p-4 mb-4 border border-yellow-500/30">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Trophy size={14} className="text-yellow-300" /> Last Jackpot Winner
+            </h3>
+            <a
+              href="https://docs.megapot.io/deep-dive/provably-fair"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-yellow-300 hover:text-yellow-200 transition-colors"
+            >
+              Provably Fair →
+            </a>
+          </div>
+          
+          {loadingLastJackpot ? (
+            <div className="text-center py-6 text-gray-400">
+              <Loader2 className="animate-spin mx-auto mb-2" size={20} />
+              <p className="text-xs font-mono">Loading Last Winner...</p>
+            </div>
+          ) : (lastJackpotWinner || overallStats?.lastJackpotWinner) ? (
+            <div className="text-center">
+              <div className="mb-3">
+                <p className="text-2xl font-bold text-yellow-300 mb-1">
+                  {(lastJackpotWinner?.address || overallStats?.lastJackpotWinner?.winner || '').slice(0, 6)}...{(lastJackpotWinner?.address || overallStats?.lastJackpotWinner?.winner || '').slice(-4)}
+                </p>
+                <p className="text-sm text-gray-300">won</p>
+              </div>
+              
+              <div className="text-3xl font-black text-white mb-3">
+                ${(lastJackpotWinner?.prize || overallStats?.lastJackpotWinner?.prize || 0).toLocaleString()}
+              </div>
+              
+              <div className="text-xs text-gray-400 space-y-1">
+                <p>Results</p>
+                <p className="text-sm text-gray-300">
+                  Ticket #{lastJackpotWinner?.ticketCount || overallStats?.lastJackpotWinner?.winningTicket || 'N/A'} won
+                </p>
+                
+                {lastJackpotWinner?.txHash && (
+                  <div className="mt-2">
+                    <a
+                      href={`https://basescan.org/tx/${lastJackpotWinner.txHash}#eventlog`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      Tx https://basescan.org/tx/{lastJackpotWinner.txHash.slice(0, 10)}...{lastJackpotWinner.txHash.slice(-8)}#eventlog
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-400">
+              <p className="text-xs">No recent jackpot winner</p>
+            </div>
+          )}
+        </div>
+
+        {/* How to Play */}
+        <div className="bg-gray-900/50 rounded-2xl p-4 mb-4 border border-gray-800">
+          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <Zap size={14} className="text-purple-300" /> How to Play
+          </h3>
+          <div className="space-y-2 text-xs text-gray-300">
+            <div className="flex items-start gap-2">
+              <span className="text-purple-300">1.</span>
+              <span>Connect your wallet and get a free daily ticket</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-purple-300">2.</span>
+              <span>Buy more tickets to increase your chances</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-purple-300">3.</span>
+              <span>Winner is drawn when timer expires</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-purple-300">4.</span>
+              <span>Prize pool grows with more participants</span>
             </div>
           </div>
-        )}
-
-        {/* LP Forms - only show if pool is open */}
-        {lpPoolStatus && wallet.connected && (
-          <>
-            {/* LP Deposit */}
-            <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-                <ArrowUp size={14} className="text-green-400" /> Deposit USDC
-              </h3>
-              <input
-                type="number"
-                placeholder="Amount in USDC"
-                value={lpDepositAmount}
-                onChange={(e) => setLpDepositAmount(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm mb-3 focus:border-purple-500 focus:outline-none"
-              />
-              <div className="text-xs text-gray-500 mb-3">
-                USDC Balance: {formatCurrency(usdcBalance)}
-              </div>
-              <button
-                onClick={async () => {
-                  if (lpDepositing) return; // Prevent double clicks
-                  if (!wallet.address) return;
-                  
-                  setLpDepositing(true);
-                  try {
-                    const amount = parseFloat(lpDepositAmount);
-                    if (!amount || amount <= 0) {
-                      showMessage('Please enter a valid amount', 'error');
-                      return;
-                    }
-                    if (amount > usdcBalance) {
-                      showMessage('Insufficient USDC balance', 'error');
-                      return;
-                    }
-                    if (amount < minLpDeposit) {
-                      showMessage(`Minimum deposit is ${formatCurrency(minLpDeposit)}`, 'error');
-                      return;
-                    }
-
-                    const txParams = await prepareLpDepositTransaction(wallet.address, amount.toString());
-                    const txHash = await (window as any).ethereum.request({
-                      method: 'eth_sendTransaction',
-                      params: [txParams],
-                    });
-                    
-                    showMessage('Deposit submitted! Waiting for confirmation...', 'info');
-                    const receipt = await waitForTransactionReceipt(txHash);
-                    const success = receipt?.status === '0x1' || receipt?.status === 1;
-                    
-                    if (success) {
-                      showMessage('USDC deposited to LP pool!', 'success');
-                      // Refresh LP data
-                      const poolStatus = await getLpPoolStatus();
-                      setLpPoolStatus(poolStatus);
-                      const lpUser = await getLpsInfo(wallet.address);
-                      setLpInfo(lpUser);
-                      const balance = await getUsdcBalance(wallet.address);
-                      setUsdcBalance(balance);
-                      setLpDepositAmount('');
-                    } else {
-                      throw new Error('Deposit transaction failed');
-                    }
-                  } catch (e: any) {
-                    console.error(e);
-                    showMessage(e.message || 'Deposit cancelled', 'error');
-                  } finally {
-                    setLpDepositing(false);
-                  }
-                }}
-                disabled={lpDepositing}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-green-600 text-white hover:bg-green-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {lpDepositing ? <Loader2 className="animate-spin" size={16} /> : 'DEPOSIT'}
-              </button>
-            </div>
-
-            {/* LP Withdraw */}
-            {wallet.connected && lpInfo && Number(lpInfo[1]) > 0 && (
-              <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-                  <ArrowDown size={14} className="text-red-400" /> Withdraw USDC
-                </h3>
-                <input
-                  type="number"
-                  placeholder="LP token amount"
-                  value={lpWithdrawAmount}
-                  onChange={(e) => setLpWithdrawAmount(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm mb-3 focus:border-purple-500 focus:outline-none"
-                />
-                <div className="text-xs text-gray-500 mb-3">
-                  Available: {lpInfo ? formatCurrency(Number(lpInfo[1]) / 1000000) : '0'}
-                </div>
-                <button
-                  onClick={async () => {
-                    if (lpWithdrawing) return; // Prevent double clicks
-                    if (!wallet.address) return;
-                    
-                    setLpWithdrawing(true);
-                    try {
-                      const amount = parseFloat(lpWithdrawAmount);
-                      if (!amount || amount <= 0) {
-                        showMessage('Please enter a valid amount', 'error');
-                        return;
-                      }
-                      const availableLp = Number(lpInfo?.[1] || 0) / 1000000;
-                      if (amount > availableLp) {
-                        showMessage('Insufficient LP token balance', 'error');
-                        return;
-                      }
-
-                      const txParams = await prepareLpWithdrawTransaction(wallet.address, amount.toString());
-                      const txHash = await (window as any).ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [txParams],
-                      });
-                      
-                      showMessage('Withdrawal submitted! Waiting for confirmation...', 'info');
-                      const receipt = await waitForTransactionReceipt(txHash);
-                      const success = receipt?.status === '0x1' || receipt?.status === 1;
-                      
-                      if (success) {
-                        showMessage('USDC withdrawn from LP pool!', 'success');
-                        // Refresh LP data
-                        const poolStatus = await getLpPoolStatus();
-                        setLpPoolStatus(poolStatus);
-                        const lpUser = await getLpsInfo(wallet.address);
-                        setLpInfo(lpUser);
-                        const balance = await getUsdcBalance(wallet.address);
-                        setUsdcBalance(balance);
-                        setLpWithdrawAmount('');
-                      } else {
-                        throw new Error('Withdrawal transaction failed');
-                      }
-                    } catch (e: any) {
-                      console.error(e);
-                      showMessage(e.message || 'Withdrawal cancelled', 'error');
-                    } finally {
-                      setLpWithdrawing(false);
-                    }
-                  }}
-                  disabled={lpWithdrawing}
-                  className="w-full py-3 rounded-xl font-bold text-sm bg-red-600 text-white hover:bg-red-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {lpWithdrawing ? <Loader2 className="animate-spin" size={16} /> : 'WITHDRAW'}
-                </button>
-              </div>
-            )}
-
-            {/* Risk Adjustment */}
-            {wallet.connected && lpInfo && Number(lpInfo[0]) > 0 && (
-              <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-                  <Settings size={14} className="text-orange-400" /> Adjust Risk Level
-                </h3>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs text-gray-400">Low</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={lpRiskPercentage || (lpInfo ? Number(lpInfo[2]) : 0)}
-                    onChange={(e) => setLpRiskPercentage(e.target.value)}
-                    className="flex-1"
-                  />
-                  <span className="text-xs text-gray-400">High</span>
-                </div>
-                <div className="text-center mb-3">
-                  <span className="text-sm font-bold text-orange-300">{lpRiskPercentage || (lpInfo ? Number(lpInfo[2]) : 0)}%</span>
-                </div>
-                <button
-                  onClick={async () => {
-                    if (lpAdjusting) return; // Prevent double clicks
-                    if (!wallet.address) return;
-                    
-                    setLpAdjusting(true);
-                    try {
-                      const riskPct = parseInt(lpRiskPercentage || (lpInfo ? lpInfo[2].toString() : '0'));
-                      const txParams = prepareLpAdjustRiskTransaction(wallet.address, riskPct);
-                      const txHash = await (window as any).ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [txParams],
-                      });
-                      
-                      showMessage('Risk adjustment submitted! Waiting for confirmation...', 'info');
-                      const receipt = await waitForTransactionReceipt(txHash);
-                      const success = receipt?.status === '0x1' || receipt?.status === 1;
-                      
-                      if (success) {
-                        showMessage('Risk level adjusted!', 'success');
-                        // Refresh LP data
-                        const poolStatus = await getLpPoolStatus();
-                        setLpPoolStatus(poolStatus);
-                        const lpUser = await getLpsInfo(wallet.address);
-                        setLpInfo(lpUser);
-                      } else {
-                        throw new Error('Risk adjustment transaction failed');
-                      }
-                    } catch (e: any) {
-                      console.error(e);
-                      showMessage(e.message || 'Risk adjustment cancelled', 'error');
-                    } finally {
-                      setLpAdjusting(false);
-                    }
-                  }}
-                  disabled={lpAdjusting}
-                  className="w-full py-3 rounded-xl font-bold text-sm bg-orange-600 text-white hover:bg-orange-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {lpAdjusting ? <Loader2 className="animate-spin" size={16} /> : 'UPDATE RISK LEVEL'}
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Footer */}
-        <div className="text-center mt-8 pt-4 border-t border-gray-800">
-          <a
-            href="https://megapot.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-gray-500 hover:text-neon transition-colors"
-          >
-            POWERED BY MEGAPOT.IO
-          </a>
         </div>
       </div>
     )}
@@ -803,6 +842,20 @@ const Raffle: React.FC = () => {
           {msg}
         </div>
       )}
+      
+      {/* Footer */}
+      <div className="mt-8 pt-4 border-t border-gray-800">
+        <div className="text-center">
+          <a
+            href="https://megapot.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+          >
+            Powered by Megapot.io
+          </a>
+        </div>
+      </div>
     </div>
   );
 };

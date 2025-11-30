@@ -1,6 +1,7 @@
 import React from 'react';
 import { Wallet, Zap } from 'lucide-react';
 import { WalletState } from '../types';
+import AdminButton from './AdminButton';
 
 interface HeaderProps {
   wallet: WalletState;
@@ -9,6 +10,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ wallet, onConnect }) => {
   const formatAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
+
+  // Check if connected wallet is the referral wallet
+  const isReferralWallet = wallet.connected && 
+    wallet.address?.toLowerCase() === '0x5872286f932e5b015ef74b2f9c8723022d1b5e1b'.toLowerCase();
 
   const getConnectText = () => {
     if (wallet.connected && wallet.address) {
@@ -38,13 +43,16 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect }) => {
           <span className="font-bold text-lg tracking-tighter">PHUNKS</span>
         </div>
         
-        <button
-          onClick={onConnect}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all ${getConnectButtonStyle()}`}
-        >
-          <Wallet size={16} />
-          {getConnectText()}
-        </button>
+        <div className="flex items-center gap-2">
+          {isReferralWallet && <AdminButton wallet={wallet} />}
+          <button
+            onClick={onConnect}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all ${getConnectButtonStyle()}`}
+          >
+            <Wallet size={16} />
+            {getConnectText()}
+          </button>
+        </div>
       </div>
     </header>
   );

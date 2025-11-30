@@ -6,7 +6,7 @@ export const APP_URL = "https://fcphunksmini.vercel.app";
 
 // RPC - Using official Base RPC for better reliability
 export const RPC_URL = "https://mainnet.base.org";
-export const IPFS_GATEWAY = "https://ipfs.io/ipfs/bafybeibu47rax5yr4bdkl7gxqttyumkf54pl3jvwxdnxqbfqfytd6qfcvi/";
+export const IPFS_GATEWAY = "https://ipfs.io/ipfs/bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey/";
 
 // Safe Environment Variable Access
 const metaEnv = (import.meta as any).env;
@@ -35,10 +35,11 @@ export const MEGAPOT_LOGO_URL = "https://raw.githubusercontent.com/opVOID/phunks
 
 // Function Selectors for Raw RPC Calls (NFT Contract)
 export const SELECTORS = {
-  totalSupply: "0x18160ddd",
-  maxSupply: "0xd5abeb01",
-  cost: "0x2c6a0e66",
-  walletOfOwner: "0x2790965c",
+  totalSupply: "0x1f1881f8",  // Fixed
+  maxSupply: "0x01060343",   // Fixed  
+  cost: "0x784a0e9b",        // Fixed
+  walletOfOwner: "0xeda569bf",
+  balanceOf: "0x1d7976f3",
 };
 
 export const NAV_ITEMS = [

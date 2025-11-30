@@ -1,0 +1,44 @@
+{
+  "tokenId": 640,
+  "name": "BASTARD DEGAN PHUNK #640",
+  "description": "NON FUNGIBLE TOKEN\nIT'S ALL YOU CAN DO\nYOU'RE NEVER GOING TO SEE WHAT'S COMING SOON, YOU'RE NEVER GONNA GO HOME\n",
+  "image": "https://ipfs.io/ipfs/bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey/640.webp",
+  "attributes": [
+    {
+      "trait_type": "HYPE TYPE",
+      "value": "HYPED AF (ANIMATED)"
+    },
+    {
+      "trait_type": "BASTARDNESS",
+      "value": "RUGPULLER BASTARD"
+    },
+    {
+      "trait_type": "SONG WORD COUNT",
+      "value": "21"
+    },
+    {
+      "trait_type": "SPEEDOMETER",
+      "value": "SWEEP PICKING (16.66 FPS)"
+    },
+    {
+      "trait_type": "NUM OF FRAMES",
+      "value": "188"
+    },
+    {
+      "trait_type": "HEAD TURNS",
+      "value": "2"
+    },
+    {
+      "trait_type": "FLOATY HEAD",
+      "value": "NAH"
+    },
+    {
+      "trait_type": "BACKGROUND GLITCH LEVEL",
+      "value": "3 - NOISY"
+    },
+    {
+      "trait_type": "BACKGROUND MOOD",
+      "value": "TRANSIENT COLORS"
+    }
+  ]
+}

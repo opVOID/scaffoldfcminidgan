@@ -1,0 +1,44 @@
+{
+  "tokenId": 9121,
+  "name": "BASTARD DEGAN PHUNK #9121",
+  "description": "CRYPTOPUNKS!\nI'M ON A PHOTOGRAPH, I GOT A BONE TO PICK OUT!\nWHATEVER, I NEED, I NEED TO KNOW,\nAND EVERYTHING THAT I KNOW\n",
+  "image": "https://ipfs.io/ipfs/bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey/9121.webp",
+  "attributes": [
+    {
+      "trait_type": "HYPE TYPE",
+      "value": "HYPED AF (ANIMATED)"
+    },
+    {
+      "trait_type": "BASTARDNESS",
+      "value": "FAKE BASTARD"
+    },
+    {
+      "trait_type": "SONG WORD COUNT",
+      "value": "24"
+    },
+    {
+      "trait_type": "SPEEDOMETER",
+      "value": "STRUMMING (12.5 FPS)"
+    },
+    {
+      "trait_type": "NUM OF FRAMES",
+      "value": "192"
+    },
+    {
+      "trait_type": "HEAD TURNS",
+      "value": "4"
+    },
+    {
+      "trait_type": "FLOATY HEAD",
+      "value": "HELL YEAH"
+    },
+    {
+      "trait_type": "BACKGROUND GLITCH LEVEL",
+      "value": "5 - GOES TO 11"
+    },
+    {
+      "trait_type": "BACKGROUND MOOD",
+      "value": "TRANSIENT COLORS"
+    }
+  ]
+}

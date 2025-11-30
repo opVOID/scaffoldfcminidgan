@@ -42,3 +42,9 @@ export interface UserData {
   xp: number;
   farcaster?: FarcasterProfile;
 }
+
+export interface ReferralReward {
+  amount: string;
+  isLoading: boolean;
+  error: string | null;
+}
