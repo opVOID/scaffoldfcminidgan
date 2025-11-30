@@ -615,7 +615,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       {/* Main Image Container - Cleaned up to show raw image */}
       <div className="relative w-full aspect-square mb-6 rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(0,255,148,0.15)] group bg-[#111]">
         <img
-          src="https://fcphunksmini.vercel.app//example.webp"
+          src="/favicon.webp"
           alt="Bastard DeGAN Phunk"
           className="w-full h-full object-cover pixel-art transition-transform duration-500 group-hover:scale-105"
         />
