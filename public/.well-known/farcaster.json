@@ -8,7 +8,7 @@
         "buttonTitle": "Mint Bastard DeGAN Phunks",
         "splashImageUrl": "https://fcphunksmini.vercel.app/example.webp",
         "splashBackgroundColor": "#17182b",
-        "webhookUrl": "https://fcphunksmini.vercel.app/api/webhook",
+        "webhookUrl": "https://api.neynar.com/f/app/d2aadd49-b11b-4f86-9792-6f2a55e71f6b/event",
         "primaryCategory": "art-creativity",
         "heroImageUrl": "https://fcphunksmini.vercel.app/example.webp",
         "ogImageUrl": "https://fcphunksmini.vercel.app/example.webp",
