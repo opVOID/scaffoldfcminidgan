@@ -17,30 +17,32 @@ declare global {
   }
 }
 
+import { useMiniApp } from '@neynar/react';
+
 function App() {
   const { wallet, connect } = useWallet();
   const [activePage, setActivePage] = useState<PageType>('mint');
+  const { isSDKLoaded, actions } = useMiniApp();
+
+  const handleAddMiniApp = async () => {
+    if (!isSDKLoaded || !actions?.addMiniApp) return;
+    try {
+      const result = await actions.addMiniApp();
+      if (result.notificationDetails) {
+        console.log('Notification token:', result.notificationDetails.token);
+      }
+    } catch (error) {
+      console.error('Failed to add mini app:', error);
+    }
+  };
 
   // Initialize Farcaster SDK when app loads
- useEffect(() => {
-  // Only try to initialize if we're actually in a Farcaster environment
-  if (window.location.href.includes('warpcast') || window.location.href.includes('farcaster')) {
-    if (window.sdk && window.sdk.actions && typeof window.sdk.actions.ready === 'function') {
-      console.log('Initializing Farcaster SDK...');
-      window.sdk.actions.ready();
-    } else if (window.sdk) {
-      // Retry after delay if SDK found but not ready
-      setTimeout(() => {
-        if (window.sdk?.actions?.ready) {
-          console.log('Farcaster SDK ready on retry');
-          window.sdk.actions.ready();
-        }
-      }, 1000);
+  useEffect(() => {
+    if (isSDKLoaded && actions?.ready) {
+      console.log('Calling sdk.actions.ready() via Neynar hook...');
+      actions.ready();
     }
-  } else {
-    console.log('Not in Farcaster environment - skipping SDK initialization');
-  }
-}, []);
+  }, [isSDKLoaded, actions]);
 
   const renderPage = () => {
     switch (activePage) {
@@ -62,9 +64,19 @@ function App() {
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-neon selection:text-black">
       <Header wallet={wallet} onConnect={connect} />
-      
+
+      {/* Add Mini App Button (Visible only if not added, but we don't know that yet without context, so just showing it for now) */}
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={handleAddMiniApp}
+          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-3 rounded-full shadow-lg transition-all"
+        >
+          🔔 Enable Notifications
+        </button>
+      </div>
+
       {renderPage()}
-      
+
       <NavBar activePage={activePage} setPage={setActivePage} />
     </div>
   );

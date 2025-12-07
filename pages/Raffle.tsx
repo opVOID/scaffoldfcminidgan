@@ -73,7 +73,7 @@ const Raffle: React.FC = () => {
 
   // 24h Countdown state
   const [claimCooldownTime, setClaimCooldownTime] = useState('');
-  
+
   // History expansion state
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
@@ -92,7 +92,7 @@ const Raffle: React.FC = () => {
 
   const groupWinnersByDate = (winners: Winner[]) => {
     const grouped: { [date: string]: Winner[] } = {};
-    
+
     winners.forEach(winner => {
       const date = new Date(winner.timestamp).toLocaleDateString();
       if (!grouped[date]) {
@@ -100,7 +100,7 @@ const Raffle: React.FC = () => {
       }
       grouped[date].push(winner);
     });
-    
+
     return grouped;
   };
 
@@ -125,22 +125,22 @@ const Raffle: React.FC = () => {
         const w = await getRecentWinners();
         setWinners(w);
         setLoadingWinners(false);
-        
+
         // Also fetch jackpot winners
         const jw = await getJackpotWinners();
         setJackpotWinners(jw);
         setLoadingJackpotWinners(false);
-        
+
         // Also fetch last jackpot winner
         const ljw = await getLastJackpotWinner();
         setLastJackpotWinner(ljw);
         setLoadingLastJackpot(false);
-        
+
         // Fetch overall statistics
         const os = await getOverallStats();
         setOverallStats(os);
         setLoadingOverallStats(false);
-        
+
         // Fetch historical jackpot winners
         const hjw = await getHistoricalJackpotWinners(15);
         setHistoricalJackpotWinners(hjw);
@@ -162,10 +162,10 @@ const Raffle: React.FC = () => {
     const initWalletData = async () => {
       try {
         console.log('Initializing wallet data for:', wallet.address);
-        
+
         // Wait a moment for wallet to be fully ready
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         const u = await getUserInfo(wallet.address);
         setUserData(u);
 
@@ -173,7 +173,7 @@ const Raffle: React.FC = () => {
         let allowance = 0;
         let attempts = 0;
         const maxAttempts = 3;
-        
+
         while (attempts < maxAttempts) {
           try {
             allowance = await checkUSDCAllowance(wallet.address);
@@ -191,7 +191,7 @@ const Raffle: React.FC = () => {
             }
           }
         }
-        
+
         setUsdcAllowance(allowance);
         console.log('Final allowance set:', allowance);
 
@@ -454,382 +454,382 @@ const Raffle: React.FC = () => {
       </div>
 
       {activeTab === 'play' ? (
-      <div>
-        {/* Pot Card */}
-        <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 rounded-2xl p-6 mb-4 border border-yellow-500/30">
-          {loadingStats ? (
-            <div className="text-center py-8 text-gray-400">
-              <Loader2 className="animate-spin mx-auto mb-2" size={24} />
-              <p className="text-sm font-mono">Fetching Data...</p>
-            </div>
-          ) : (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 text-xs text-yellow-300">
-                  <Trophy size={12} />
-                  <span>PRIZE POOL</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <Clock size={12} />
-                  <span>{formatTime(stats.timeLeftSeconds)}</span>
-                </div>
-              </div>
-              <div className="text-center mb-4">
-                <p className="text-4xl font-black text-white mb-1">{formatCurrency(stats.potSizeUSD)}</p>
-                <p className="text-xs text-gray-400">Next Prize</p>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <p className="text-lg font-bold text-white">{stats.ticketsSoldCount}</p>
-                  <p className="text-xs text-gray-400">Tickets</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-purple-300">{stats.activePlayers}</p>
-                  <p className="text-xs text-gray-400">Players</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-green-300">{stats.ticketCost.toFixed(2)}</p>
-                  <p className="text-xs text-gray-400">Cost</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Free Daily Ticket */}
-        <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-xl p-4 border border-green-500/30">
-          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <Zap size={14} className="text-green-300" /> Daily Free Ticket
-          </h3>
-          <div className="text-center">
-            {!wallet.connected ? (
-              <button
-                onClick={connect}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-green-600 text-white hover:bg-green-500 transition-all flex items-center justify-center gap-2"
-              >
-                CONNECT TO CLAIM
-              </button>
-            ) : userData.freeTicketClaimed ? (
-              <div className="space-y-2">
-                <div className="text-green-300 text-sm font-bold">✓ Free Ticket Claimed!</div>
-                {claimCooldownTime && (
-                  <div className="text-xs text-gray-400">
-                    Next free ticket in: {claimCooldownTime}
-                  </div>
-                )}
+        <div>
+          {/* Pot Card */}
+          <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 rounded-2xl p-6 mb-4 border border-yellow-500/30">
+            {loadingStats ? (
+              <div className="text-center py-8 text-gray-400">
+                <Loader2 className="animate-spin mx-auto mb-2" size={24} />
+                <p className="text-sm font-mono">Fetching Data...</p>
               </div>
             ) : (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-xs text-yellow-300">
+                    <Trophy size={12} />
+                    <span>PRIZE POOL</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <Clock size={12} />
+                    <span>{formatTime(stats.timeLeftSeconds)}</span>
+                  </div>
+                </div>
+                <div className="text-center mb-4">
+                  <p className="text-4xl font-black text-white mb-1">{formatCurrency(stats.potSizeUSD)}</p>
+                  <p className="text-xs text-gray-400">Jackpot Amount</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-lg font-bold text-white">{stats.ticketsSoldCount}</p>
+                    <p className="text-xs text-gray-400">Tickets</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-purple-300">{stats.activePlayers}</p>
+                    <p className="text-xs text-gray-400">Players</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-green-300">{stats.ticketCost.toFixed(2)}</p>
+                    <p className="text-xs text-gray-400">Cost</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Free Daily Ticket */}
+          <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-xl p-4 border border-green-500/30">
+            <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <Zap size={14} className="text-green-300" /> Daily Free Ticket
+            </h3>
+            <div className="text-center">
+              {!wallet.connected ? (
+                <button
+                  onClick={connect}
+                  className="w-full py-3 rounded-xl font-bold text-sm bg-green-600 text-white hover:bg-green-500 transition-all flex items-center justify-center gap-2"
+                >
+                  CONNECT TO CLAIM
+                </button>
+              ) : userData.freeTicketClaimed ? (
+                <div className="space-y-2">
+                  <div className="text-green-300 text-sm font-bold">✓ Free Ticket Claimed!</div>
+                  {claimCooldownTime && (
+                    <div className="text-xs text-gray-400">
+                      Next free ticket in: {claimCooldownTime}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={handleClaim}
+                  disabled={claiming}
+                  className="w-full py-3 rounded-xl font-bold text-sm bg-green-600 text-white hover:bg-green-500 transition-all flex items-center justify-center gap-2"
+                >
+                  {claiming ? <Loader2 className="animate-spin" size={16} /> : 'Share Miniapp to claim free Ticket'}
+                </button>
+              )}
+            </div>
+            <div className="text-xs text-gray-500 mt-2 text-center">
+              Share on Farcaster to claim your daily free ticket
+            </div>
+          </div>
+
+          {/* Buy Tickets Card */}
+          <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
+            <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <Ticket size={14} className="text-purple-300" /> Buy Tickets
+            </h3>
+            <div className="flex items-center gap-2 mb-3">
               <button
-                onClick={handleClaim}
-                disabled={claiming}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-green-600 text-white hover:bg-green-500 transition-all flex items-center justify-center gap-2"
+                onClick={() => setBuyAmount(Math.max(1, buyAmount - 1))}
+                className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center"
               >
-                {claiming ? <Loader2 className="animate-spin" size={16} /> : 'Share Miniapp to claim free Ticket'}
+                -
+              </button>
+              <input
+                type="number"
+                min="1"
+                value={buyAmount}
+                onChange={(e) => setBuyAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                className="flex-1 text-center bg-gray-800 border border-gray-700 rounded-lg text-white px-2 py-1"
+              />
+              <button
+                onClick={() => setBuyAmount(buyAmount + 1)}
+                className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center"
+              >
+                +
+              </button>
+            </div>
+            <div className="text-center mb-3">
+              <p className="text-xs text-gray-400">Total Cost</p>
+              <p className="text-lg font-bold text-white">{formatCurrency(buyAmount * stats.ticketCost)}</p>
+            </div>
+            {wallet.connected ? (
+              <>
+                {usdcAllowance < buyAmount * stats.ticketCost ? (
+                  <button
+                    onClick={handleApprove}
+                    disabled={approving}
+                    className="w-full py-3 rounded-xl font-bold text-sm bg-yellow-600 text-white hover:bg-yellow-500 transition-all flex items-center justify-center gap-2"
+                  >
+                    {approving ? <Loader2 className="animate-spin" size={16} /> : 'APPROVE USDC'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleBuy}
+                    disabled={buying}
+                    className="w-full py-3 rounded-xl font-bold text-sm bg-purple-600 text-white hover:bg-purple-500 transition-all flex items-center justify-center gap-2"
+                  >
+                    {buying ? <Loader2 className="animate-spin" size={16} /> : `BUY FOR $${(buyAmount * stats.ticketCost).toFixed(2)} USDC`}
+                  </button>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={connect}
+                className="w-full py-3 rounded-xl font-bold text-sm bg-gray-600 text-white hover:bg-gray-500 transition-all"
+              >
+                CONNECT WALLET
               </button>
             )}
           </div>
-          <div className="text-xs text-gray-500 mt-2 text-center">
-            Share on Farcaster to claim your daily free ticket
-          </div>
         </div>
-
-        {/* Buy Tickets Card */}
-        <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
-          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <Ticket size={14} className="text-purple-300" /> Buy Tickets
-          </h3>
-          <div className="flex items-center gap-2 mb-3">
-            <button
-              onClick={() => setBuyAmount(Math.max(1, buyAmount - 1))}
-              className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center"
-            >
-              -
-            </button>
-            <input
-              type="number"
-              min="1"
-              value={buyAmount}
-              onChange={(e) => setBuyAmount(Math.max(1, parseInt(e.target.value) || 1))}
-              className="flex-1 text-center bg-gray-800 border border-gray-700 rounded-lg text-white px-2 py-1"
-            />
-            <button
-              onClick={() => setBuyAmount(buyAmount + 1)}
-              className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center"
-            >
-              +
-            </button>
-          </div>
-          <div className="text-center mb-3">
-            <p className="text-xs text-gray-400">Total Cost</p>
-            <p className="text-lg font-bold text-white">{formatCurrency(buyAmount * stats.ticketCost)}</p>
-          </div>
-          {wallet.connected ? (
-            <>
-              {usdcAllowance < buyAmount * stats.ticketCost ? (
-                <button
-                  onClick={handleApprove}
-                  disabled={approving}
-                  className="w-full py-3 rounded-xl font-bold text-sm bg-yellow-600 text-white hover:bg-yellow-500 transition-all flex items-center justify-center gap-2"
-                >
-                  {approving ? <Loader2 className="animate-spin" size={16} /> : 'APPROVE USDC'}
-                </button>
-              ) : (
-                <button
-                  onClick={handleBuy}
-                  disabled={buying}
-                  className="w-full py-3 rounded-xl font-bold text-sm bg-purple-600 text-white hover:bg-purple-500 transition-all flex items-center justify-center gap-2"
-                >
-                  {buying ? <Loader2 className="animate-spin" size={16} /> : `BUY FOR $${(buyAmount * stats.ticketCost).toFixed(2)} USDC`}
-                </button>
-              )}
-            </>
-          ) : (
-            <button
-              onClick={connect}
-              className="w-full py-3 rounded-xl font-bold text-sm bg-gray-600 text-white hover:bg-gray-500 transition-all"
-            >
-              CONNECT WALLET
-            </button>
-          )}
-        </div>
-      </div>
-    ) : (
-      <div className="space-y-4">
-        {/* Daily Prize Winners */}
-        <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-2xl p-4 mb-4 border border-green-500/30">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Zap size={14} className="text-green-300" /> Daily Prize Winners
-            </h3>
-            <span className="text-xs text-green-300 font-mono">$25/$5/$2 Prizes</span>
-          </div>
-          
-          {loadingWinners ? (
-            <div className="text-center py-6 text-gray-400">
-              <Loader2 className="animate-spin mx-auto mb-2" size={20} />
-              <p className="text-xs font-mono">Loading Daily Winners...</p>
+      ) : (
+        <div className="space-y-4">
+          {/* Daily Prize Winners */}
+          <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-2xl p-4 mb-4 border border-green-500/30">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Zap size={14} className="text-green-300" /> Daily Prize Winners
+              </h3>
+              <span className="text-xs text-green-300 font-mono">$25/$5/$2 Prizes</span>
             </div>
-          ) : winners.length > 0 ? (
-            <div className="space-y-3">
-              {Object.entries(groupWinnersByDate(winners)).map(([date, dayWinners]) => {
-                const isExpanded = expandedDays.has(date);
-                const totalPrize = dayWinners.reduce((sum, w) => sum + w.prize, 0);
-                
-                // Get round IDs for this day
-                const roundIds = [...new Set(dayWinners.map(w => w.roundId))];
-                const roundRange = roundIds.length === 1 
-                  ? `Round ${roundIds[0]}`
-                  : `Rounds ${Math.min(...roundIds)}-${Math.max(...roundIds)}`;
-                
-                return (
-                  <div key={date} className="bg-gray-900/50 rounded-lg border border-gray-800">
-                    {/* Day Header - Clickable */}
-                    <button
-                      onClick={() => toggleDayExpansion(date)}
-                      className="w-full p-3 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-blue-300">{roundRange}</span>
-                        <span className="text-xs font-bold text-yellow-300">{date}</span>
-                        <span className="text-xs text-gray-400">{dayWinners.length} winners</span>
-                        <span className="text-xs font-bold text-green-300">${totalPrize}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">
-                          {isExpanded ? 'Click to collapse' : 'Click to expand'}
-                        </span>
-                        <History size={12} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                      </div>
-                    </button>
-                    
-                    {/* Expanded Winners List */}
-                    {isExpanded && (
-                      <div className="border-t border-gray-800">
-                        {dayWinners.map((winner, index) => (
-                          <div key={`${winner.address}-${index}`} className="p-3 border-b border-gray-800 last:border-b-0">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs font-bold text-yellow-300">#{winner.roundId}</span>
-                                <span className="text-xs text-gray-300 font-mono">
-                                  {winner.address.slice(0, 6)}...{winner.address.slice(-4)}
-                                </span>
-                                <span className="text-sm font-bold text-green-300">
-                                  ${winner.prize}
-                                </span>
+
+            {loadingWinners ? (
+              <div className="text-center py-6 text-gray-400">
+                <Loader2 className="animate-spin mx-auto mb-2" size={20} />
+                <p className="text-xs font-mono">Loading Daily Winners...</p>
+              </div>
+            ) : winners.length > 0 ? (
+              <div className="space-y-3">
+                {Object.entries(groupWinnersByDate(winners)).map(([date, dayWinners]) => {
+                  const isExpanded = expandedDays.has(date);
+                  const totalPrize = dayWinners.reduce((sum, w) => sum + w.prize, 0);
+
+                  // Get round IDs for this day
+                  const roundIds = [...new Set(dayWinners.map(w => w.roundId))];
+                  const roundRange = roundIds.length === 1
+                    ? `Round ${roundIds[0]}`
+                    : `Rounds ${Math.min(...roundIds)}-${Math.max(...roundIds)}`;
+
+                  return (
+                    <div key={date} className="bg-gray-900/50 rounded-lg border border-gray-800">
+                      {/* Day Header - Clickable */}
+                      <button
+                        onClick={() => toggleDayExpansion(date)}
+                        className="w-full p-3 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold text-blue-300">{roundRange}</span>
+                          <span className="text-xs font-bold text-yellow-300">{date}</span>
+                          <span className="text-xs text-gray-400">{dayWinners.length} winners</span>
+                          <span className="text-xs font-bold text-green-300">${totalPrize}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">
+                            {isExpanded ? 'Click to collapse' : 'Click to expand'}
+                          </span>
+                          <History size={12} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        </div>
+                      </button>
+
+                      {/* Expanded Winners List */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-800">
+                          {dayWinners.map((winner, index) => (
+                            <div key={`${winner.address}-${index}`} className="p-3 border-b border-gray-800 last:border-b-0">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs font-bold text-yellow-300">#{winner.roundId}</span>
+                                  <span className="text-xs text-gray-300 font-mono">
+                                    {winner.address.slice(0, 6)}...{winner.address.slice(-4)}
+                                  </span>
+                                  <span className="text-sm font-bold text-green-300">
+                                    ${winner.prize}
+                                  </span>
+                                </div>
+                                {winner.txHash && (() => {
+                                  const chainInfo = getChainInfo(winner.isWorldApp);
+                                  return (
+                                    <a
+                                      href={`https://${chainInfo.explorer}/tx/${winner.txHash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                      title={`View on ${chainInfo.name}`}
+                                    >
+                                      {chainInfo.name} →
+                                    </a>
+                                  );
+                                })()}
                               </div>
-                              {winner.txHash && (() => {
-                                const chainInfo = getChainInfo(winner.isWorldApp);
-                                return (
-                                  <a
-                                    href={`https://${chainInfo.explorer}/tx/${winner.txHash}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                                    title={`View on ${chainInfo.name}`}
-                                  >
-                                    {chainInfo.name} →
-                                  </a>
-                                );
-                              })()}
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-gray-400">
+                <p className="text-xs">No daily winners yet</p>
+              </div>
+            )}
+          </div>
+
+          {/* Overall Statistics */}
+          <div className="bg-gradient-to-br from-purple-500/20 to-blue-600/20 rounded-2xl p-4 mb-4 border border-purple-500/30">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <TrendingUp size={14} className="text-purple-300" /> Overall Statistics
+              </h3>
+              <span className="text-xs text-purple-300 font-mono">Since July 2024</span>
+            </div>
+
+            {loadingOverallStats ? (
+              <div className="text-center py-6 text-gray-400">
+                <Loader2 className="animate-spin mx-auto mb-2" size={20} />
+                <p className="text-xs font-mono">Loading Overall Stats...</p>
+              </div>
+            ) : overallStats ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-yellow-300">
+                      ${overallStats.totalPrizePool.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-400">Total Prizes</p>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-6 text-gray-400">
-              <p className="text-xs">No daily winners yet</p>
-            </div>
-          )}
-        </div>
-
-        {/* Overall Statistics */}
-        <div className="bg-gradient-to-br from-purple-500/20 to-blue-600/20 rounded-2xl p-4 mb-4 border border-purple-500/30">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <TrendingUp size={14} className="text-purple-300" /> Overall Statistics
-            </h3>
-            <span className="text-xs text-purple-300 font-mono">Since July 2024</span>
-          </div>
-          
-          {loadingOverallStats ? (
-            <div className="text-center py-6 text-gray-400">
-              <Loader2 className="animate-spin mx-auto mb-2" size={20} />
-              <p className="text-xs font-mono">Loading Overall Stats...</p>
-            </div>
-          ) : overallStats ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-yellow-300">
-                    ${overallStats.totalPrizePool.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-400">Total Prizes</p>
                 </div>
-              </div>
-              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-green-300">
-                    {overallStats.totalWinners}
-                  </p>
-                  <p className="text-xs text-gray-400">Jackpot Winners</p>
-                </div>
-              </div>
-              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-blue-300">
-                    {overallStats.uniquePlayers.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-400">Unique Players</p>
-                </div>
-              </div>
-              <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-purple-300">
-                    {overallStats.totalTickets.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-400">Tickets Sold</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-6 text-gray-400">
-              <p className="text-xs">Statistics unavailable</p>
-            </div>
-          )}
-        </div>
-
-        {/* Last Jackpot Winner */}
-        <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 rounded-2xl p-4 mb-4 border border-yellow-500/30">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Trophy size={14} className="text-yellow-300" /> Last Jackpot Winner
-            </h3>
-            <a
-              href="https://docs.megapot.io/deep-dive/provably-fair"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-yellow-300 hover:text-yellow-200 transition-colors"
-            >
-              Provably Fair →
-            </a>
-          </div>
-          
-          {loadingLastJackpot ? (
-            <div className="text-center py-6 text-gray-400">
-              <Loader2 className="animate-spin mx-auto mb-2" size={20} />
-              <p className="text-xs font-mono">Loading Last Winner...</p>
-            </div>
-          ) : (lastJackpotWinner || overallStats?.lastJackpotWinner) ? (
-            <div className="text-center">
-              <div className="mb-3">
-                <p className="text-2xl font-bold text-yellow-300 mb-1">
-                  {(lastJackpotWinner?.address || overallStats?.lastJackpotWinner?.winner || '').slice(0, 6)}...{(lastJackpotWinner?.address || overallStats?.lastJackpotWinner?.winner || '').slice(-4)}
-                </p>
-                <p className="text-sm text-gray-300">won</p>
-              </div>
-              
-              <div className="text-3xl font-black text-white mb-3">
-                ${(lastJackpotWinner?.prize || overallStats?.lastJackpotWinner?.prize || 0).toLocaleString()}
-              </div>
-              
-              <div className="text-xs text-gray-400 space-y-1">
-                <p>Results</p>
-                <p className="text-sm text-gray-300">
-                  Ticket #{lastJackpotWinner?.ticketCount || overallStats?.lastJackpotWinner?.winningTicket || 'N/A'} won
-                </p>
-                
-                {lastJackpotWinner?.txHash && (
-                  <div className="mt-2">
-                    <a
-                      href={`https://basescan.org/tx/${lastJackpotWinner.txHash}#eventlog`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                    >
-                      Tx https://basescan.org/tx/{lastJackpotWinner.txHash.slice(0, 10)}...{lastJackpotWinner.txHash.slice(-8)}#eventlog
-                    </a>
+                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-green-300">
+                      {overallStats.totalWinners}
+                    </p>
+                    <p className="text-xs text-gray-400">Jackpot Winners</p>
                   </div>
-                )}
+                </div>
+                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-blue-300">
+                      {overallStats.uniquePlayers.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-400">Unique Players</p>
+                  </div>
+                </div>
+                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-purple-300">
+                      {overallStats.totalTickets.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-400">Tickets Sold</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="text-center py-6 text-gray-400">
-              <p className="text-xs">No recent jackpot winner</p>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="text-center py-6 text-gray-400">
+                <p className="text-xs">Statistics unavailable</p>
+              </div>
+            )}
+          </div>
 
-        {/* How to Play */}
-        <div className="bg-gray-900/50 rounded-2xl p-4 mb-4 border border-gray-800">
-          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <Zap size={14} className="text-purple-300" /> How to Play
-          </h3>
-          <div className="space-y-2 text-xs text-gray-300">
-            <div className="flex items-start gap-2">
-              <span className="text-purple-300">1.</span>
-              <span>Connect your wallet and get a free daily ticket</span>
+          {/* Last Jackpot Winner */}
+          <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 rounded-2xl p-4 mb-4 border border-yellow-500/30">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Trophy size={14} className="text-yellow-300" /> Last Jackpot Winner
+              </h3>
+              <a
+                href="https://docs.megapot.io/deep-dive/provably-fair"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-yellow-300 hover:text-yellow-200 transition-colors"
+              >
+                Provably Fair →
+              </a>
             </div>
-            <div className="flex items-start gap-2">
-              <span className="text-purple-300">2.</span>
-              <span>Buy more tickets to increase your chances</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-purple-300">3.</span>
-              <span>Winner is drawn when timer expires</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-purple-300">4.</span>
-              <span>Prize pool grows with more participants</span>
+
+            {loadingLastJackpot ? (
+              <div className="text-center py-6 text-gray-400">
+                <Loader2 className="animate-spin mx-auto mb-2" size={20} />
+                <p className="text-xs font-mono">Loading Last Winner...</p>
+              </div>
+            ) : (lastJackpotWinner || overallStats?.lastJackpotWinner) ? (
+              <div className="text-center">
+                <div className="mb-3">
+                  <p className="text-2xl font-bold text-yellow-300 mb-1">
+                    {(lastJackpotWinner?.address || overallStats?.lastJackpotWinner?.winner || '').slice(0, 6)}...{(lastJackpotWinner?.address || overallStats?.lastJackpotWinner?.winner || '').slice(-4)}
+                  </p>
+                  <p className="text-sm text-gray-300">won</p>
+                </div>
+
+                <div className="text-3xl font-black text-white mb-3">
+                  ${(lastJackpotWinner?.prize || overallStats?.lastJackpotWinner?.prize || 0).toLocaleString()}
+                </div>
+
+                <div className="text-xs text-gray-400 space-y-1">
+                  <p>Results</p>
+                  <p className="text-sm text-gray-300">
+                    Ticket #{lastJackpotWinner?.ticketCount || overallStats?.lastJackpotWinner?.winningTicket || 'N/A'} won
+                  </p>
+
+                  {lastJackpotWinner?.txHash && (
+                    <div className="mt-2">
+                      <a
+                        href={`https://basescan.org/tx/${lastJackpotWinner.txHash}#eventlog`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                      >
+                        Tx https://basescan.org/tx/{lastJackpotWinner.txHash.slice(0, 10)}...{lastJackpotWinner.txHash.slice(-8)}#eventlog
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-gray-400">
+                <p className="text-xs">No recent jackpot winner</p>
+              </div>
+            )}
+          </div>
+
+          {/* How to Play */}
+          <div className="bg-gray-900/50 rounded-2xl p-4 mb-4 border border-gray-800">
+            <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <Zap size={14} className="text-purple-300" /> How to Play
+            </h3>
+            <div className="space-y-2 text-xs text-gray-300">
+              <div className="flex items-start gap-2">
+                <span className="text-purple-300">1.</span>
+                <span>Connect your wallet and get a free daily ticket</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-purple-300">2.</span>
+                <span>Buy more tickets to increase your chances</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-purple-300">3.</span>
+                <span>Winner is drawn when timer expires</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-purple-300">4.</span>
+                <span>Prize pool grows with more participants</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* Message Toast */}
       {msg && (
@@ -842,7 +842,7 @@ const Raffle: React.FC = () => {
           {msg}
         </div>
       )}
-      
+
       {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-800">
         <div className="text-center">
