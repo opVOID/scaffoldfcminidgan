@@ -22,7 +22,8 @@ import { useMiniApp } from '@neynar/react';
 function App() {
   const { wallet, connect } = useWallet();
   const [activePage, setActivePage] = useState<PageType>('mint');
-  const { isSDKLoaded, actions } = useMiniApp();
+  const { isSDKLoaded, actions, added } = useMiniApp();
+  const hasAttemptedToAdd = React.useRef(false);
 
   const handleAddMiniApp = async () => {
     if (!isSDKLoaded || !actions?.addMiniApp) return;
@@ -31,8 +32,14 @@ function App() {
       if (result.notificationDetails) {
         console.log('Notification token:', result.notificationDetails.token);
       }
-    } catch (error) {
-      console.error('Failed to add mini app:', error);
+    } catch (error: any) {
+      // Check for the specific error "Cannot read properties of undefined (reading 'result')"
+      // which happens when the Farcaster client returns an empty response (common in some environments)
+      if (error instanceof TypeError && error.message.includes("reading 'result'")) {
+        console.warn('Mini App addition failed: The Farcaster client returned an empty response. This may happen if you are not in a fully supported Farcaster client environment.');
+      } else {
+        console.error('Failed to add mini app:', error);
+      }
     }
   };
 
@@ -41,8 +48,15 @@ function App() {
     if (isSDKLoaded && actions?.ready) {
       console.log('Calling sdk.actions.ready() via Neynar hook...');
       actions.ready();
+
+      // Auto-prompt to add mini app if not already added
+      if (!added && !hasAttemptedToAdd.current) {
+        console.log('App not added, prompting user...');
+        hasAttemptedToAdd.current = true;
+        handleAddMiniApp();
+      }
     }
-  }, [isSDKLoaded, actions]);
+  }, [isSDKLoaded, actions, added]);
 
   const renderPage = () => {
     switch (activePage) {
@@ -64,16 +78,6 @@ function App() {
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-neon selection:text-black">
       <Header wallet={wallet} onConnect={connect} />
-
-      {/* Add Mini App Button (Visible only if not added, but we don't know that yet without context, so just showing it for now) */}
-      <div className="fixed top-4 right-4 z-50">
-        <button
-          onClick={handleAddMiniApp}
-          className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-1 px-3 rounded-full shadow-lg transition-all"
-        >
-          🔔 Enable Notifications
-        </button>
-      </div>
 
       {renderPage()}
 
