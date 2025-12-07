@@ -1,0 +1,33 @@
+{
+    "frame": {
+        "name": "Bastard DeGAN Phunks",
+        "version": "1",
+        "iconUrl": "https://fcphunksmini.vercel.app/example.webp",
+        "homeUrl": "https://fcphunksmini.vercel.app",
+        "imageUrl": "https://fcphunksmini.vercel.app/example.webp",
+        "buttonTitle": "Mint Bastard DeGAN Phunks",
+        "splashImageUrl": "https://fcphunksmini.vercel.app/example.webp",
+        "splashBackgroundColor": "#17182b",
+        "webhookUrl": "https://api.neynar.com/f/app/d2aadd49-b11b-4f86-9792-6f2a55e71f6b/event",
+        "primaryCategory": "art-creativity",
+        "heroImageUrl": "https://fcphunksmini.vercel.app/example.webp",
+        "ogImageUrl": "https://fcphunksmini.vercel.app/example.webp",
+        "subtitle": "Mint, Rank, Gain",
+        "description": "Mint Phunks. Earn Rewards",
+        "tags": [
+            "nft",
+            "defi",
+            "airdrop",
+            "earn"
+        ],
+        "castShareUrl": "https://fcphunksmini.vercel.app/share",
+        "ogDescription": "Mint Phunks. Earn Rewards",
+        "ogTitle": "Bastard DeGAN Phunks",
+        "tagline": "Mint. Rank. Earn Rewards"
+    },
+    "accountAssociation": {
+        "header": "eyJmaWQiOjM5NjA1NywidHlwZSI6ImF1dGgiLCJrZXkiOiIweDVCN2E4MWNBOTMwMjA5ODgxNjZGOTAzMTk0ZjgxODFGMkQzNjRDNjYifQ",
+        "payload": "eyJkb21haW4iOiJmY3BodW5rc21pbmkudmVyY2VsLmFwcCJ9",
+        "signature": "mocLhTsHdS6C2HYdzP67VZmKzKLBEYUixTehd8vLLs8PlnB65fdmo1Nd1UeJSFlm2QyshFG3ntUnQeP63HUJlBw="
+    }
+}
