@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Minus, Plus, X, Share2, ExternalLink, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { WalletState, NFT } from '../types';
-import { CONTRACT_ADDRESS, EXPLORER_URL, IPFS_GATEWAY, APP_URL } from '../constants';
+import { CONTRACT_ADDRESS, EXPLORER_URL, IPFS_GATEWAY, APP_URL, ADMIN_WALLET } from '../constants';
 import { fetchUserNFTs, fetchMetadata, fetchCollectionStats } from '../services/web3';
 import { fetchBatchLocalMetadata, fetchLocalMetadataWithCache } from '../services/localMetadata';
 import { rewardUserShare } from '../services/db';
@@ -736,27 +736,34 @@ Mint yours and enter today’s jackpot 👇`;
           {minting ? 'MINTING...' : wallet.connected ? `MINT ${quantity} (${(stats.price * quantity).toFixed(3)} ETH)` : 'CONNECT WALLET'}
         </button>
 
-        {/* Test Buttons for Development */}
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={handleTestMint}
-            className="flex-1 bg-purple-600/20 text-purple-400 border border-purple-600/50 py-2 rounded-lg text-xs font-bold hover:bg-purple-600/30 transition-colors"
-          >
-            Test Single Mint
-          </button>
-          <button
-            onClick={handleTestMultipleMint}
-            className="flex-1 bg-blue-600/20 text-blue-400 border border-blue-600/50 py-2 rounded-lg text-xs font-bold hover:bg-blue-600/30 transition-colors"
-          >
-            Test Multi Mint
-          </button>
-          <button
-            onClick={() => handleTestMintAndShare(10)}
-            className="flex-1 bg-green-600/20 text-green-400 border border-green-600/50 py-2 rounded-lg text-xs font-bold hover:bg-green-600/30 transition-colors"
-          >
-            Test Token #10
-          </button>
-        </div>
+        {/* Admin Panel */}
+        {wallet.address && wallet.address.toLowerCase() === ADMIN_WALLET.toLowerCase() && (
+          <div className="mt-6 p-4 border border-neon/50 rounded-xl bg-gray-900/50">
+            <h3 className="text-neon text-xs font-bold uppercase tracking-widest mb-3 border-b border-neon/30 pb-2">Admin Panel</h3>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleTestMint}
+                  className="flex-1 bg-purple-600/20 text-purple-400 border border-purple-600/50 py-2 rounded-lg text-xs font-bold hover:bg-purple-600/30 transition-colors"
+                >
+                  Test Single Mint
+                </button>
+                <button
+                  onClick={handleTestMultipleMint}
+                  className="flex-1 bg-blue-600/20 text-blue-400 border border-blue-600/50 py-2 rounded-lg text-xs font-bold hover:bg-blue-600/30 transition-colors"
+                >
+                  Test Multi Mint
+                </button>
+              </div>
+              <button
+                onClick={() => handleTestMintAndShare(10)}
+                className="w-full bg-green-600/20 text-green-400 border border-green-600/50 py-2 rounded-lg text-xs font-bold hover:bg-green-600/30 transition-colors"
+              >
+                Test Token #10 (Mint & Share)
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 text-center">
           <a
