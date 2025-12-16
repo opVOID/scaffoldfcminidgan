@@ -31,13 +31,18 @@ export default function handler(request, response) {
       <title>${title}</title>
       <meta property="og:title" content="${title}" />
       <meta property="og:image" content="${imageUrl}" />
+      
+      <!-- Farcaster Frame Meta Tags -->
       <meta property="fc:frame" content="vNext" />
       <meta property="fc:frame:image" content="${imageUrl}" />
+      <meta property="fc:frame:image:aspect_ratio" content="1:1" />
+      
+      <!-- Button to Launch Mini App -->
       <meta property="fc:frame:button:1" content="Mint Your Phunk" />
       <meta property="fc:frame:button:1:action" content="link" />
       <meta property="fc:frame:button:1:target" content="${appUrl}" />
       
-      <!-- Mini App Meta Tags -->
+      <!-- Mini App Meta Tags (for direct deep linking support) -->
       <meta name="fc:miniapp" content='${miniappContent}' />
       
       <!-- Redirect to the main app if opened in a browser -->
