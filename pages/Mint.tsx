@@ -555,19 +555,18 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
 
       showMessage('🎉 Test mint successful!', 'success');
 
-      // 4. Build Warpcast share (NFT IMAGE + APP EMBED)
+      // 4. Build Warpcast share (DIRECT IMAGE EMBED)
       const nftImageUrl = nft.image;
-
-      // Construct the dynamic frame URL
-      const appUrl = `${APP_URL}/api/frame?nft=${encodeURIComponent(nftImageUrl)}&name=${encodeURIComponent(nft.name)}&balance=1000`; // Mock balance for test
+      const appLandingPage = APP_URL;
 
       const text = `I just minted ${nft.name} ⚡️
-Mint yours and enter today’s jackpot 👇`;
+Mint yours and enter today’s jackpot 👇
+${appLandingPage}`;
 
       const warpcastUrl =
         `https://warpcast.com/~/compose` +
         `?text=${encodeURIComponent(text)}` +
-        `&embeds[]=${encodeURIComponent(appUrl)}`;
+        `&embeds[]=${encodeURIComponent(nftImageUrl)}`;
 
       // 5. Open Warpcast composer
       window.open(warpcastUrl, '_blank');
@@ -652,13 +651,13 @@ Mint yours and enter today’s jackpot 👇`;
     const sharableImageUrl = imageUrl.replace('https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/');
 
     // 4. Construct Warpcast URL
-    // We only embed the appUrl (which is now the dynamic frame URL).
-    // The dynamic frame URL itself will have the correct meta tags for the image.
-    // We can also include the sharableImageUrl as a backup embed, but usually the frame takes precedence.
+    // FALLBACK STRATEGY: Direct Image Embed
+    // We embed the raw image URL directly. This guarantees the image renders.
+    // We add the App URL in the text body so users can still click to mint.
     const warpcastUrl =
       `https://warpcast.com/~/compose` +
-      `?text=${encodeURIComponent(text)}` +
-      `&embeds[]=${encodeURIComponent(appUrl)}`;
+      `?text=${encodeURIComponent(text + '\n\n' + appUrl)}` +
+      `&embeds[]=${encodeURIComponent(mintedNFT.image)}`;
 
     window.open(warpcastUrl, '_blank');
   };
