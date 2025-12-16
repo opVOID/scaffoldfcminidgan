@@ -564,13 +564,31 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       const text = `I just minted ${nft.name} ⚡️
 Mint yours and enter today’s jackpot 👇`;
 
-      const warpcastUrl =
-        `https://warpcast.com/~/compose` +
-        `?text=${encodeURIComponent(text)}` +
-        `&embeds[]=${encodeURIComponent(appUrl)}`;
-
       // 5. Open Warpcast composer
-      window.open(warpcastUrl, '_blank');
+      // 4. Share using Farcaster SDK (Preferred)
+      try {
+        // @ts-ignore
+        if (window.farcaster?.frame?.sdk?.actions?.composeCast) {
+          // @ts-ignore
+          await window.farcaster.frame.sdk.actions.composeCast({
+            text: text,
+            embeds: [appUrl]
+          });
+        } else {
+          const warpcastUrl =
+            `https://warpcast.com/~/compose` +
+            `?text=${encodeURIComponent(text)}` +
+            `&embeds[]=${encodeURIComponent(appUrl)}`;
+          window.open(warpcastUrl, '_blank');
+        }
+      } catch (err) {
+        console.error("Error launching composeCast:", err);
+        const warpcastUrl =
+          `https://warpcast.com/~/compose` +
+          `?text=${encodeURIComponent(text)}` +
+          `&embeds[]=${encodeURIComponent(appUrl)}`;
+        window.open(warpcastUrl, '_blank');
+      }
 
     } catch (error: any) {
       console.error('Test mint + share failed:', error);
@@ -651,14 +669,33 @@ Mint yours and enter today’s jackpot 👇`;
     // dweb.link handles redirects correctly and is often faster for embeds
     const sharableImageUrl = imageUrl.replace('https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/');
 
-    // 4. Construct Warpcast URL
-    // Use the dynamic frame URL which includes the correct meta tags for image + button
-    const warpcastUrl =
-      `https://warpcast.com/~/compose` +
-      `?text=${encodeURIComponent(text)}` +
-      `&embeds[]=${encodeURIComponent(appUrl)}`;
-
-    window.open(warpcastUrl, '_blank');
+    // 4. Share using Farcaster SDK (Preferred) or Fallback
+    try {
+      // @ts-ignore - SDK might be loaded globally via script tag
+      if (window.farcaster?.frame?.sdk?.actions?.composeCast) {
+        // @ts-ignore
+        await window.farcaster.frame.sdk.actions.composeCast({
+          text: text,
+          embeds: [appUrl]
+        });
+        showMessage('Opened share dialog!', 'success');
+      } else {
+        // Fallback for web / when SDK not defined
+        const warpcastUrl =
+          `https://warpcast.com/~/compose` +
+          `?text=${encodeURIComponent(text)}` +
+          `&embeds[]=${encodeURIComponent(appUrl)}`;
+        window.open(warpcastUrl, '_blank');
+      }
+    } catch (err) {
+      console.error("Error launching composeCast:", err);
+      // Fallback if SDK call fails
+      const warpcastUrl =
+        `https://warpcast.com/~/compose` +
+        `?text=${encodeURIComponent(text)}` +
+        `&embeds[]=${encodeURIComponent(appUrl)}`;
+      window.open(warpcastUrl, '_blank');
+    }
   };
 
   return (
