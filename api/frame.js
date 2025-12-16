@@ -1,30 +1,35 @@
-export default function handler(request, response) {
-    const { nft, name } = request.query;
+export const config = {
+  runtime: 'edge',
+};
 
-    // Default values if params are missing
-    const imageUrl = nft || 'https://fcphunksmini.vercel.app/example.webp';
-    const title = name ? `Minted ${name}` : 'Bastard DeGAN Phunks';
-    const appUrl = 'https://fcphunksmini.vercel.app';
+export default function handler(request) {
+  const url = new URL(request.url);
+  const nft = url.searchParams.get('nft');
+  const name = url.searchParams.get('name');
 
-    // Construct the Mini App JSON content securely
-    const miniappContent = JSON.stringify({
-        version: "1",
-        imageUrl: imageUrl,
-        button: {
-            title: "Mint Your Phunk",
-            action: {
-                type: "launch_miniapp",
-                name: "Bastard DeGAN Phunks",
-                url: appUrl,
-                splashImageUrl: imageUrl,
-                splashBackgroundColor: "#17182b"
-            }
-        }
-    });
+  // Default values if params are missing
+  const imageUrl = nft || 'https://fcphunksmini.vercel.app/example.webp';
+  const title = name ? `Minted ${name}` : 'Bastard DeGAN Phunks';
+  const appUrl = 'https://fcphunksmini.vercel.app';
 
-    // Construct the HTML with dynamic meta tags
-    // Note: We used to have escaped \${} which broke interpolation. Fixed now.
-    const html = `<!DOCTYPE html>
+  // Construct the Mini App JSON content securely
+  const miniappContent = JSON.stringify({
+    version: "1",
+    imageUrl: imageUrl,
+    button: {
+      title: "Mint Your Phunk",
+      action: {
+        type: "launch_miniapp",
+        name: "Bastard DeGAN Phunks",
+        url: appUrl,
+        splashImageUrl: imageUrl,
+        splashBackgroundColor: "#17182b"
+      }
+    }
+  });
+
+  // Construct the HTML with dynamic meta tags
+  const html = `<!DOCTYPE html>
   <html>
     <head>
       <meta charset="utf-8" />
@@ -53,6 +58,10 @@ export default function handler(request, response) {
     </body>
   </html>`;
 
-    response.setHeader('Content-Type', 'text/html');
-    response.status(200).send(html);
+  return new Response(html, {
+    status: 200,
+    headers: {
+      'content-type': 'text/html',
+    },
+  });
 }
