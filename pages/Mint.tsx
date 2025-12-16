@@ -556,9 +556,10 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       showMessage('🎉 Test mint successful!', 'success');
 
       // 4. Build Warpcast share (NFT IMAGE + APP EMBED)
-      const nftImageUrl = nft.image.startsWith('ipfs://')
-        ? `https://ipfs.io/ipfs/${nft.image.replace('ipfs://', '')}`
-        : nft.image;
+      const nftImageUrl = nft.image;
+
+      // Construct the dynamic frame URL
+      const appUrl = `${APP_URL}/api/frame?nft=${encodeURIComponent(nftImageUrl)}&name=${encodeURIComponent(nft.name)}&balance=1000`; // Mock balance for test
 
       const text = `I just minted ${nft.name} ⚡️
 Mint yours and enter today’s jackpot 👇`;
@@ -566,8 +567,7 @@ Mint yours and enter today’s jackpot 👇`;
       const warpcastUrl =
         `https://warpcast.com/~/compose` +
         `?text=${encodeURIComponent(text)}` +
-        `&embeds[]=${encodeURIComponent(nftImageUrl)}` +
-        `&embeds[]=${encodeURIComponent(APP_URL)}`;
+        `&embeds[]=${encodeURIComponent(appUrl)}`;
 
       // 5. Open Warpcast composer
       window.open(warpcastUrl, '_blank');
