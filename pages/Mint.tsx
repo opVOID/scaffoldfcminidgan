@@ -81,14 +81,14 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       // Try local metadata service first for immediate response
       const tokenId = parseInt(nft.id);
       const localMetadata = await fetchLocalMetadataWithCache(tokenId);
-      
+
       if (localMetadata && localMetadata.attributes.length > 0) {
         console.log(`Using local metadata for token ${tokenId}:`, localMetadata);
         const traits = localMetadata.attributes;
-        
+
         // Cache the traits
         setTraitsCache(prev => new Map(prev).set(nft.id, traits));
-        
+
         const nftWithTraits = {
           ...nft,
           attributes: traits
@@ -118,15 +118,15 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for IPFS issues
 
-          const response = await fetch(url, { 
+          const response = await fetch(url, {
             signal: controller.signal,
-            headers: { 
+            headers: {
               'Accept': 'application/json',
               'Origin': window.location.origin
             },
             mode: 'cors'
           });
-          
+
           clearTimeout(timeoutId);
 
           console.log(`Response status: ${response.status} for ${url}`);
@@ -154,10 +154,10 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       if (metadata) {
         console.log(`Remote metadata for token ${nft.id}:`, metadata);
         const traits = metadata.attributes || [];
-        
+
         // Cache the traits
         setTraitsCache(prev => new Map(prev).set(nft.id, traits));
-        
+
         const nftWithTraits = {
           ...nft,
           attributes: traits
@@ -168,7 +168,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
         console.warn('All gateways failed, no traits available');
         // Cache empty traits to avoid repeated failed requests
         setTraitsCache(prev => new Map(prev).set(nft.id, []));
-        
+
         const nftWithTraits = {
           ...nft,
           attributes: []
@@ -189,7 +189,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       setErrorNFTs(true);
       return;
     }
-    
+
     setLoadingNFTs(true);
     setErrorNFTs(false);
     try {
@@ -264,7 +264,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
             );
 
             const mintedTokenIds: number[] = [];
-            
+
             // Extract token IDs from all Transfer events
             transferLogs.forEach(log => {
               if (log.topics && log.topics.length > 3) {
@@ -277,15 +277,15 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
 
             // Fetch metadata for all minted tokens using local service for immediate preview
             const mintedNFTsData: NFT[] = [];
-            
+
             // Use batch local metadata fetch for better performance
             const localNFTsData = await fetchBatchLocalMetadata(mintedTokenIds);
-            
+
             // Process each token ID with local metadata first, fallback to remote if needed
             for (let i = 0; i < mintedTokenIds.length; i++) {
               const tokenId = mintedTokenIds[i];
               let nftData = localNFTsData.find(nft => nft.id === tokenId.toString());
-              
+
               if (!nftData) {
                 try {
                   // Fallback to individual fetch if batch didn't include this token
@@ -294,7 +294,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
                   console.error(`Error fetching local metadata for token ${tokenId}:`, error);
                 }
               }
-              
+
               if (nftData) {
                 mintedNFTsData.push(nftData);
               } else {
@@ -325,7 +325,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
           const data = await fetchCollectionStats();
           const nextTokenId = data.totalSupply + 1;
           const fallbackNFTs: NFT[] = [];
-          
+
           for (let i = 0; i < quantity; i++) {
             fallbackNFTs.push({
               id: (nextTokenId + i).toString(),
@@ -336,7 +336,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
               isAnimated: false
             });
           }
-          
+
           setMintedNFTs(fallbackNFTs);
           setMintedNFT(fallbackNFTs[0] || null);
           setShowSuccess(true);
@@ -360,13 +360,13 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
     // Test minting using local metadata service to verify gallery loading
     try {
       showMessage('🔄 Testing local metadata fetch...', 'info');
-      
+
       // Use local metadata service to fetch real data for token #1
       const testNFT = await fetchLocalMetadataWithCache(1);
-      
+
       if (testNFT) {
         console.log('Test mint - Using local metadata for NFT #1:', testNFT);
-        
+
         // Set both the array and single NFT for consistency
         setMintedNFTs([testNFT]);
         setMintedNFT(testNFT);
@@ -399,7 +399,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
           ],
           isAnimated: false
         };
-        
+
         setMintedNFTs([fallbackNFT]);
         setMintedNFT(fallbackNFT);
         setSelectedTestNFT(fallbackNFT);
@@ -416,18 +416,18 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
     // Test multiple minting using local metadata service to verify gallery loading
     try {
       showMessage('🔄 Testing batch local metadata fetch...', 'info');
-      
+
       // Use local metadata service to fetch real data for tokens #100, #101, #102, #103
       const testTokenIds = [100, 101, 102, 103];
       const localNFTsData = await fetchBatchLocalMetadata(testTokenIds);
-      
+
       console.log('Test multiple mint - Using local metadata for tokens:', testTokenIds);
       console.log('Fetched NFTs:', localNFTsData);
-      
+
       if (localNFTsData.length > 0) {
         // Filter out any null results and add fallbacks if needed
         const validNFTs = localNFTsData.filter(nft => nft !== null);
-        
+
         if (validNFTs.length > 0) {
           // Set both the array and first NFT for consistency
           setMintedNFTs(validNFTs);
@@ -515,7 +515,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
             isAnimated: true
           }
         ];
-        
+
         setMintedNFTs(fallbackNFTs);
         setMintedNFT(fallbackNFTs[0]);
         setSelectedTestNFT(fallbackNFTs[0]);
@@ -529,54 +529,54 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
   };
 
   const handleTestMintAndShare = async (tokenId: number = 1) => {
-  try {
-    showMessage('🔄 Test minting NFT...', 'info');
+    try {
+      showMessage('🔄 Test minting NFT...', 'info');
 
-    // 1. Fetch real local metadata (preferred)
-    let nft = await fetchLocalMetadataWithCache(tokenId);
+      // 1. Fetch real local metadata (preferred)
+      let nft = await fetchLocalMetadataWithCache(tokenId);
 
-    // 2. Hard fallback (never break UX)
-    if (!nft) {
-      nft = {
-        id: tokenId.toString(),
-        name: `BASTARD DEGAN PHUNK #${tokenId}`,
-        image: `https://fcphunksmini.vercel.app/token/${tokenId}.webp`,
-        description: `Test mint for Farcaster mini app`,
-        attributes: [],
-        isAnimated: false
-      };
-    }
+      // 2. Hard fallback (never break UX)
+      if (!nft) {
+        nft = {
+          id: tokenId.toString(),
+          name: `BASTARD DEGAN PHUNK #${tokenId}`,
+          image: `https://fcphunksmini.vercel.app/token/${tokenId}.webp`,
+          description: `Test mint for Farcaster mini app`,
+          attributes: [],
+          isAnimated: false
+        };
+      }
 
-    // 3. Update UI state (exactly like real mint)
-    setMintedNFTs([nft]);
-    setMintedNFT(nft);
-    setSelectedTestNFT(nft);
-    setShowSuccess(true);
+      // 3. Update UI state (exactly like real mint)
+      setMintedNFTs([nft]);
+      setMintedNFT(nft);
+      setSelectedTestNFT(nft);
+      setShowSuccess(true);
 
-    showMessage('🎉 Test mint successful!', 'success');
+      showMessage('🎉 Test mint successful!', 'success');
 
-    // 4. Build Warpcast share (NFT IMAGE + APP EMBED)
-    const nftImageUrl = nft.image.startsWith('ipfs://')
-      ? `https://ipfs.io/ipfs/${nft.image.replace('ipfs://', '')}`
-      : nft.image;
+      // 4. Build Warpcast share (NFT IMAGE + APP EMBED)
+      const nftImageUrl = nft.image.startsWith('ipfs://')
+        ? `https://ipfs.io/ipfs/${nft.image.replace('ipfs://', '')}`
+        : nft.image;
 
-    const text = `I just minted ${nft.name} ⚡️
+      const text = `I just minted ${nft.name} ⚡️
 Mint yours and enter today’s jackpot 👇`;
 
-    const warpcastUrl =
-      `https://warpcast.com/~/compose` +
-      `?text=${encodeURIComponent(text)}` +
-      `&embeds[]=${encodeURIComponent(nftImageUrl)}` +
-      `&embeds[]=${encodeURIComponent(APP_URL)}`;
+      const warpcastUrl =
+        `https://warpcast.com/~/compose` +
+        `?text=${encodeURIComponent(text)}` +
+        `&embeds[]=${encodeURIComponent(nftImageUrl)}` +
+        `&embeds[]=${encodeURIComponent(APP_URL)}`;
 
-    // 5. Open Warpcast composer
-    window.open(warpcastUrl, '_blank');
+      // 5. Open Warpcast composer
+      window.open(warpcastUrl, '_blank');
 
-  } catch (error: any) {
-    console.error('Test mint + share failed:', error);
-    showMessage(error?.message || 'Test mint failed', 'error');
-  }
-};
+    } catch (error: any) {
+      console.error('Test mint + share failed:', error);
+      showMessage(error?.message || 'Test mint failed', 'error');
+    }
+  };
 
 
   const handleShare = async () => {
@@ -594,7 +594,7 @@ Mint yours and enter today’s jackpot 👇`;
     try {
       const raffleStats = await getRaffleStats();
       jackpotBalance = raffleStats.potSizeUSD;
-      
+
       if (jackpotBalance === 1000) {
         // Try direct API fetch if fallback detected
         const response = await fetch('https://api.megapot.io/api/v1/jackpot-round-stats/active', {
@@ -603,7 +603,7 @@ Mint yours and enter today’s jackpot 👇`;
             'apikey': import.meta.env.VITE_MEGAPOT_API_KEY || 'default-key'
           }
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           const realBalance = parseFloat(data.prizeUsd) || 0;
@@ -617,8 +617,8 @@ Mint yours and enter today’s jackpot 👇`;
       jackpotBalance = 825406; // Fallback
     }
 
-    const formattedBalance = jackpotBalance >= 1000 
-      ? `$${(jackpotBalance / 1000).toFixed(1)}K` 
+    const formattedBalance = jackpotBalance >= 1000
+      ? `$${(jackpotBalance / 1000).toFixed(1)}K`
       : `$${jackpotBalance.toFixed(0)}`;
 
     // 3. Prepare Share Data
@@ -629,32 +629,35 @@ Mint yours and enter today’s jackpot 👇`;
     if (mintedNFTs.length > 1) {
       // --- BULK MINT ---
       text = `I just minted ${mintedNFTs.length} Bastard DeGAN Phunks! 🎉 Current jackpot pool: ${formattedBalance}! Mint yours now and participate in Today's MEGAPOT JACKPOT VALUE Raffle!`;
-      
+
       // Use the first NFT as the representative image
       const firstNFT = mintedNFTs[0];
-      imageUrl = firstNFT.image.startsWith('ipfs://')
-        ? `https://ipfs.io/ipfs/${firstNFT.image.replace('ipfs://', '')}`
-        : firstNFT.image;
+      // Use the image directly from metadata
+      imageUrl = firstNFT.image;
 
     } else {
       // --- SINGLE MINT ---
       text = `I just minted ${mintedNFT.name}! 🎉 Current jackpot pool: ${formattedBalance}! Verify my Phunk on Base and mint yours! ⚡️`;
-      
-      // Use the single NFT image
-      imageUrl = mintedNFT.image.startsWith('ipfs://')
-        ? `https://ipfs.io/ipfs/${mintedNFT.image.replace('ipfs://', '')}`
-        : mintedNFT.image;
-        
-      // Optionally add query params to app URL if supported by the frame for dynamic content
-      // accessing specific token data
-      appUrl = `${APP_URL}?nft=${encodeURIComponent(imageUrl)}&name=${encodeURIComponent(mintedNFT.name)}&balance=${encodeURIComponent(formattedBalance)}`;
+
+      // Use the image directly from metadata
+      imageUrl = mintedNFT.image;
+
+      // Construct the dynamic frame URL
+      // This URL points to our serverless function which generates the correct meta tags
+      appUrl = `${APP_URL}/api/frame?nft=${encodeURIComponent(imageUrl)}&name=${encodeURIComponent(mintedNFT.name)}&balance=${encodeURIComponent(formattedBalance)}`;
     }
 
-    // 4. Construct Warpcast URL with TWO embeds: Image and App
-    const warpcastUrl = 
+    // Replace ipfs.io with dweb.link for reliable social card previews
+    // dweb.link handles redirects correctly and is often faster for embeds
+    const sharableImageUrl = imageUrl.replace('https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/');
+
+    // 4. Construct Warpcast URL
+    // We only embed the appUrl (which is now the dynamic frame URL).
+    // The dynamic frame URL itself will have the correct meta tags for the image.
+    // We can also include the sharableImageUrl as a backup embed, but usually the frame takes precedence.
+    const warpcastUrl =
       `https://warpcast.com/~/compose` +
       `?text=${encodeURIComponent(text)}` +
-      `&embeds[]=${encodeURIComponent(imageUrl)}` +
       `&embeds[]=${encodeURIComponent(appUrl)}`;
 
     window.open(warpcastUrl, '_blank');
@@ -665,8 +668,8 @@ Mint yours and enter today’s jackpot 👇`;
       {/* Message Display */}
       {msg && (
         <div className={`fixed top-20 left-4 right-4 z-50 p-3 rounded-lg text-sm font-bold animate-in fade-in duration-200 ${msgType === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-            msgType === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-              'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+          msgType === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+            'bg-blue-500/20 text-blue-400 border border-blue-500/30'
           }`}>
           {msg}
         </div>
@@ -726,8 +729,8 @@ Mint yours and enter today’s jackpot 👇`;
           onClick={handleMint}
           disabled={minting}
           className={`w-full py-4 rounded-xl font-bold text-lg tracking-widest transition-all ${minting
-              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-              : 'bg-[#1F2937] text-gray-200 hover:bg-neon hover:text-black shadow-[0_4px_0_#000] active:shadow-none active:translate-y-[4px]'
+            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+            : 'bg-[#1F2937] text-gray-200 hover:bg-neon hover:text-black shadow-[0_4px_0_#000] active:shadow-none active:translate-y-[4px]'
             }`}
         >
           {minting ? 'MINTING...' : wallet.connected ? `MINT ${quantity} (${(stats.price * quantity).toFixed(3)} ETH)` : 'CONNECT WALLET'}
@@ -783,7 +786,7 @@ Mint yours and enter today’s jackpot 👇`;
                 {mintedNFTs.length > 1 ? `MINTED ${mintedNFTs.length} NFTs!` : 'MINT SUCCESSFUL!'}
               </h2>
               <p className="text-gray-400 text-xs mb-6 font-mono">
-                {mintedNFTs.length > 1 
+                {mintedNFTs.length > 1
                   ? `Welcome to the family, you magnificent bastard.`
                   : 'Welcome to the family, bastard.'
                 }
@@ -797,15 +800,14 @@ Mint yours and enter today’s jackpot 👇`;
                       <button
                         key={`${nft.id}-${index}`}
                         onClick={() => setSelectedTestNFT(nft)}
-                        className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-300 ${
-                          selectedTestNFT?.id === nft.id 
-                            ? 'border-neon shadow-[0_0_20px_rgba(0,255,148,0.4)] scale-105' 
-                            : 'border-neon/30 hover:border-neon/60 hover:scale-105'
-                        } group`}
+                        className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-300 ${selectedTestNFT?.id === nft.id
+                          ? 'border-neon shadow-[0_0_20px_rgba(0,255,148,0.4)] scale-105'
+                          : 'border-neon/30 hover:border-neon/60 hover:scale-105'
+                          } group`}
                       >
-                        <img 
-                          src={nft.image} 
-                          alt={`${nft.name}`} 
+                        <img
+                          src={nft.image}
+                          alt={`${nft.name}`}
                           className="w-full h-full object-cover pixel-art transition-transform duration-300 group-hover:scale-105"
                           style={{ imageRendering: 'auto' }}
                         />
@@ -826,7 +828,7 @@ Mint yours and enter today’s jackpot 👇`;
                       </button>
                     ))}
                   </div>
-                  
+
                   {/* Selected NFT Details */}
                   {selectedTestNFT && (
                     <div className="border-t border-gray-800 pt-4">
@@ -849,12 +851,12 @@ Mint yours and enter today’s jackpot 👇`;
                 /* Single NFT Display */
                 <div className="space-y-4">
                   <div className="relative aspect-square rounded-xl overflow-hidden border-2 border-neon/30">
-                    <img 
-                    src={mintedNFT!.image} 
-                    alt="Minted NFT" 
-                    className="w-full h-full object-cover pixel-art"
-                    style={{ imageRendering: 'auto' }}
-                  />
+                    <img
+                      src={mintedNFT!.image}
+                      alt="Minted NFT"
+                      className="w-full h-full object-cover pixel-art"
+                      style={{ imageRendering: 'auto' }}
+                    />
                     {mintedNFT!.isAnimated && (
                       <div className="absolute top-2 right-2 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shadow-lg">
                         Animated
@@ -936,9 +938,9 @@ Mint yours and enter today’s jackpot 👇`;
                       onClick={() => loadTraitsForNFT(nft)}
                       className="relative aspect-square bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-neon transition-colors group"
                     >
-                      <img 
-                        src={nft.image} 
-                        alt={nft.name} 
+                      <img
+                        src={nft.image}
+                        alt={nft.name}
                         className="w-full h-full object-cover pixel-art"
                         style={{ imageRendering: 'auto' }}
                         loading="lazy"
@@ -972,18 +974,18 @@ Mint yours and enter today’s jackpot 👇`;
                 <div className="flex flex-col md:flex-row">
                   {/* NFT Image */}
                   <div className="md:w-1/2 aspect-square relative">
-                    <img 
-                          src={selectedNFT.image} 
-                          alt={selectedNFT.name} 
-                          className="w-full h-full object-cover"
-                          style={{ imageRendering: 'auto' }}
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.src = `${IPFS_GATEWAY}${selectedNFT.id}.webp`;
-                          }}
-                        />
+                    <img
+                      src={selectedNFT.image}
+                      alt={selectedNFT.name}
+                      className="w-full h-full object-cover"
+                      style={{ imageRendering: 'auto' }}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = `${IPFS_GATEWAY}${selectedNFT.id}.webp`;
+                      }}
+                    />
                   </div>
-                  
+
                   {/* NFT Details */}
                   <div className="md:w-1/2 p-6 flex flex-col">
                     <div className="flex items-center gap-2 mb-4">
