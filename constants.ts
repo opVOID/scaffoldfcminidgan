@@ -31,7 +31,7 @@ export const MEGAPOT_CONTRACT_ADDRESS = "0xbEDd4F2beBE9E3E636161E644759f3cbe3d51
 export const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 // FIXED: Correct logo URL from phunksmegapot repo
-export const MEGAPOT_LOGO_URL = "https://raw.githubusercontent.com/opVOID/phunksmegapot/main/megapoints-small.png";
+export const MEGAPOT_LOGO_URL = "/megapoints-small.png";
 
 // Function Selectors for Raw RPC Calls (NFT Contract)
 export const SELECTORS = {

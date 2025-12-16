@@ -1,4 +1,9 @@
-import { MEGAPOT_API_KEY, REFERRAL_ADDRESS, MEGAPOT_CONTRACT_ADDRESS, USDC_CONTRACT_ADDRESS } from '../constants';
+import { 
+  MEGAPOT_CONTRACT_ADDRESS, 
+  USDC_CONTRACT_ADDRESS,
+  REFERRAL_ADDRESS,
+  MEGAPOT_API_KEY
+} from '../constants';
 
 // ============== TYPES ==============
 export interface RaffleStats {
@@ -21,6 +26,7 @@ export interface Winner {
   timestamp: number;
   txHash?: string;
   ticketCount?: number;
+  winningTicket?: number;
   claimBlockNumber?: number;
   isWorldApp?: boolean;
 }
@@ -116,56 +122,38 @@ const megapotFetch = async (endpoint: string, options: RequestInit = {}): Promis
   });
 };
 
-// Fetch overall statistics using direct API calls instead of Firecrawl
+// Fetch overall statistics using the official all-time-stats endpoint
 export const getOverallStats = async (): Promise<OverallStats | null> => {
   try {
-    // Use the regular Megapot API instead of scraping
-    const response = await megapotFetch('/overall-stats');
+    // Use the official all-time-stats endpoint from Megapot API
+    const response = await megapotFetch('/all-time-stats');
     
     if (!response.ok) {
-      console.warn('Overall stats API not available, using fallback');
-      // Return reasonable fallback data
-      return {
-        totalPrizePool: 5000000, // $5M total
-        totalWinners: 1500,
-        uniquePlayers: 5000,
-        totalTickets: 25000,
-        lastJackpotWinner: {
-          prize: 825406,
-          winningTicket: "1234567",
-          winner: "0x1234...5678"
-        }
-      };
+      console.warn('All-time stats API not available');
+      return null;
     }
     
     const data = await response.json();
-    console.log('Overall stats API response:', data);
+    console.log('All-time stats API response:', data);
+    
+    // Extract data from the nested structure
+    const statsData = data.data;
+    
+    if (!statsData) {
+      console.warn('No data found in all-time stats response');
+      return null;
+    }
     
     return {
-      totalPrizePool: data.totalPrizePool || 5000000,
-      totalWinners: data.totalWinners || 1500,
-      uniquePlayers: data.uniquePlayers || 5000,
-      totalTickets: data.totalTickets || 25000,
-      lastJackpotWinner: data.lastJackpotWinner || {
-        prize: 825406,
-        winningTicket: "1234567",
-        winner: "0x1234...5678"
-      }
+      totalPrizePool: statsData.JackpotsRunTotal_USD || 0,
+      totalWinners: statsData.total_won || 0,
+      uniquePlayers: statsData.total_players || 0,
+      totalTickets: statsData.total_tickets || 0,
+      lastJackpotWinner: null // This endpoint doesn't include last winner, will be fetched separately
     };
   } catch (e) {
     console.error('getOverallStats error:', e);
-    // Return fallback data instead of hanging
-    return {
-      totalPrizePool: 5000000,
-      totalWinners: 1500,
-      uniquePlayers: 5000,
-      totalTickets: 25000,
-      lastJackpotWinner: {
-        prize: 825406,
-        winningTicket: "1234567",
-        winner: "0x1234...5678"
-      }
-    };
+    return null;
   }
 };
 
@@ -191,9 +179,10 @@ export const getHistoricalJackpotWinners = async (limit: number = 20): Promise<H
         if (round.jackpot && round.jackpot.winAmount) {
           const date = new Date(round.endTimestamp || Date.now()).toLocaleDateString();
           const prize = parseFloat(round.jackpot.winAmount) / 1000000; // Convert from USDC
-          const winningTicket = round.jackpot.winningTicket || "1234567";
+          const winningTicket = round.jackpot.winningTicket;
           
-          if (prize > 1000 && prize < 2000000) {
+          // Only include if we have a real winning ticket number
+          if (prize > 1000 && prize < 2000000 && winningTicket) {
             historicalWinners.push({
               date,
               prize,
@@ -401,20 +390,8 @@ export const getRaffleStats = async (): Promise<RaffleStats> => {
     };
   } catch (e) {
     console.error('getRaffleStats error:', e);
-    // Return mock data for development
-    console.log('Returning fallback mock data');
-    return {
-      potSizeUSD: 1000,
-      timeLeftSeconds: 3600,
-      currentRoundId: 1,
-      ticketCost: 1,
-      ticketsSoldCount: 500,
-      oddsPerTicket: '1 in 500',
-      activePlayers: 25,
-      feeBps: 3000,
-      referralFeeBps: 1000,
-      endTimestamp: Date.now() + 3600000
-    };
+    // Return null instead of mock data
+    return null;
   }
 };
 
@@ -423,25 +400,13 @@ export const getUserInfo = async (userAddress: string): Promise<UserRaffleStats>
     // Use the correct endpoint from Megapot docs
     const response = await megapotFetch(`/ticket-purchases/${userAddress}`);
     if (!response.ok) {
-      // Return mock data for development
-      return {
-        tickets: 0,
-        ticketsBps: 0,
-        freeTicketClaimed: false,
-        lastClaimTimestamp: 0,
-        winningsClaimable: 0
-      };
+      // Return null instead of mock data
+      return null;
     }
     
     const data = await response.json();
     if (!Array.isArray(data) || data.length === 0) {
-      return {
-        tickets: 0,
-        ticketsBps: 0,
-        freeTicketClaimed: false,
-        lastClaimTimestamp: 0,
-        winningsClaimable: 0
-      };
+      return null;
     }
     
     // Calculate total tickets from purchases
@@ -457,13 +422,7 @@ export const getUserInfo = async (userAddress: string): Promise<UserRaffleStats>
     };
   } catch (e) {
     console.error('getUserInfo error:', e);
-    return {
-      tickets: 0,
-      ticketsBps: 0,
-      freeTicketClaimed: false,
-      lastClaimTimestamp: 0,
-      winningsClaimable: 0
-    };
+    return null;
   }
 };
 
@@ -532,43 +491,46 @@ export const getLastJackpotWinner = async (): Promise<Winner | null> => {
     }
 
     const data = await response.json();
+    console.log('getLastJackpotWinner - raw data:', data);
 
     // Handle jackpot history (array of rounds)
     if (Array.isArray(data) && data.length > 0) {
-      // Get the most recent round (first in array)
-      const round = data[0];
+      console.log('getLastJackpotWinner - searching through', data.length, 'rounds');
       
-      // Check if this is a jackpot round with a winner
-      if (round.jackpot && round.jackpot.winAmount && round.winner) {
-        const winnerAddress = round.winner;
+      // Find the first round that has a winner (skip rollovers)
+      for (let i = 0; i < data.length; i++) {
+        const round = data[i];
         
-        // Skip zero address (rollover/no winner)
-        if (winnerAddress === "0x0000000000000000000000000000000000000000") {
-          return null;
-        }
+        if (round.jackpot && round.jackpot.winAmount && round.jackpot.winningTicket && round.ticketPurchases && round.ticketPurchases.length > 0) {
+          const winnerTicket = round.ticketPurchases[0];
+          const winnerAddress = winnerTicket.recipient;
+          
+          // Skip zero address (rollover/no winner)
+          if (!winnerAddress || winnerAddress === "0x0000000000000000000000000000000000000000") {
+            continue;
+          }
 
-        let timestamp = Date.now();
-        if (round.jackpot.blockNumberEnd) {
-          const baseGenesisBlock = 0;
-          const baseGenesisTime = 1686789347000;
-          const blockNumber = parseInt(round.jackpot.blockNumberEnd);
-          timestamp = baseGenesisTime + ((blockNumber - baseGenesisBlock) * 2000);
-        }
-
-        // Convert from USDC (6 decimals) to dollars
-        const actualPayout = (parseInt(round.jackpot.winAmount) || 0) / 1000000;
-        
-        // Only return reasonable jackpot amounts
-        if (actualPayout > 0 && actualPayout <= 500000) {
-          return {
-            roundId: round.id || 1,
-            address: winnerAddress,
-            prize: actualPayout,
-            timestamp: timestamp,
-            txHash: round.jackpot.txHash,
-            ticketCount: round.jackpot.ticketPurchasedCount,
-            isWorldApp: false
-          };
+          const actualPayout = (parseInt(round.jackpot.winAmount) || 0) / 1000000;
+          const winningTicketNumber = Math.floor(parseInt(round.jackpot.winningTicket) / 7000);
+          
+          if (actualPayout > 0 && actualPayout <= 500000) {
+            console.log('getLastJackpotWinner - returning winner:', {
+              address: winnerAddress,
+              prize: actualPayout,
+              winningTicket: winningTicketNumber
+            });
+            
+            return {
+              roundId: round.id || 1,
+              address: winnerAddress,
+              prize: actualPayout,
+              timestamp: Date.now(),
+              txHash: round.jackpot.txHash,
+              ticketCount: round.jackpot.ticketPurchasedCount,
+              winningTicket: winningTicketNumber,
+              isWorldApp: false
+            };
+          }
         }
       }
     }
@@ -579,6 +541,64 @@ export const getLastJackpotWinner = async (): Promise<Winner | null> => {
     return null;
   }
 };
+
+// Helper function to get winner from history when contract shows no winner
+async function getWinnerFromHistory(): Promise<Winner | null> {
+  try {
+    const response = await megapotFetch('/jackpot-history');
+    
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    console.log('getWinnerFromHistory - searching through', data.length, 'rounds');
+    
+    if (Array.isArray(data) && data.length > 0) {
+      // Find the first round with a valid winner (not zero address)
+      for (let i = 0; i < data.length; i++) {
+        const round = data[i];
+        
+        if (round.jackpot && round.jackpot.winAmount && round.jackpot.winningTicket && round.ticketPurchases && round.ticketPurchases.length > 0) {
+          const winnerTicket = round.ticketPurchases[0];
+          const winnerAddress = winnerTicket.recipient;
+          
+          // Skip zero address (rollover/no winner)
+          if (!winnerAddress || winnerAddress === "0x0000000000000000000000000000000000000000") {
+            continue;
+          }
+
+          const actualPayout = (parseInt(round.jackpot.winAmount) || 0) / 1000000;
+          const winningTicketNumber = Math.floor(parseInt(round.jackpot.winningTicket) / 7000);
+          
+          if (actualPayout > 0 && actualPayout <= 500000) {
+            console.log('getWinnerFromHistory - returning winner:', {
+              address: winnerAddress,
+              prize: actualPayout,
+              winningTicket: winningTicketNumber
+            });
+            
+            return {
+              roundId: round.id || 1,
+              address: winnerAddress,
+              prize: actualPayout,
+              timestamp: Date.now(),
+              txHash: round.jackpot.txHash,
+              ticketCount: round.jackpot.ticketPurchasedCount,
+              winningTicket: winningTicketNumber,
+              isWorldApp: false
+            };
+          }
+        }
+      }
+    }
+    
+    return null;
+  } catch (e) {
+    console.error("getWinnerFromHistory error:", e);
+    return null;
+  }
+}
 
 export const getJackpotWinners = async (limit: number = 10): Promise<Winner[]> => {
   try {
@@ -602,11 +622,14 @@ export const getJackpotWinners = async (limit: number = 10): Promise<Winner[]> =
         const round = rounds[i];
         
         // Check if this is a jackpot round with a winner
-        if (round.jackpot && round.jackpot.winAmount && round.winner) {
-          const winnerAddress = round.winner;
+        if (round.jackpot && round.jackpot.winAmount && round.ticketPurchases && round.ticketPurchases.length > 0) {
+          
+          // Get the winner from the first ticket purchase (recipient is the winner)
+          const winnerTicket = round.ticketPurchases[0];
+          const winnerAddress = winnerTicket.recipient;
           
           // Skip zero address (rollover/no winner)
-          if (winnerAddress === "0x0000000000000000000000000000000000000000") {
+          if (!winnerAddress || winnerAddress === "0x0000000000000000000000000000000000000000") {
             continue;
           }
 

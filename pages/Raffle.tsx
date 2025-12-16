@@ -11,7 +11,6 @@ import {
   checkUSDCAllowance,
   getRecentWinners,
   getJackpotWinners,
-  getLastJackpotWinner,
   waitForTransactionReceipt,
   getUsdcBalance,
   getOverallStats,
@@ -53,14 +52,11 @@ const Raffle: React.FC = () => {
 
   const [winners, setWinners] = useState<Winner[]>([]);
   const [jackpotWinners, setJackpotWinners] = useState<Winner[]>([]);
-  const [lastJackpotWinner, setLastJackpotWinner] = useState<Winner | null>(null);
   const [overallStats, setOverallStats] = useState<OverallStats | null>(null);
   const [historicalJackpotWinners, setHistoricalJackpotWinners] = useState<HistoricalJackpotWinner[]>([]);
   const [loadingWinners, setLoadingWinners] = useState(true);
   const [loadingJackpotWinners, setLoadingJackpotWinners] = useState(true);
-  const [loadingLastJackpot, setLoadingLastJackpot] = useState(true);
   const [loadingOverallStats, setLoadingOverallStats] = useState(true);
-  const [loadingHistoricalJackpots, setLoadingHistoricalJackpots] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [buyAmount, setBuyAmount] = useState(1);
   const [claiming, setClaiming] = useState(false);
@@ -119,7 +115,23 @@ const Raffle: React.FC = () => {
     const initBasic = async () => {
       try {
         const s = await getRaffleStats();
-        setStats(s);
+        if (s) {
+          setStats(s);
+        } else {
+          // Set default values when API fails
+          setStats({
+            potSizeUSD: 0,
+            timeLeftSeconds: 0,
+            currentRoundId: 0,
+            ticketCost: 1,
+            ticketsSoldCount: 0,
+            oddsPerTicket: '0',
+            activePlayers: 0,
+            feeBps: 3000,
+            referralFeeBps: 1000,
+            endTimestamp: Date.now() + 86400000
+          });
+        }
         setLoadingStats(false);
 
         const w = await getRecentWinners();
@@ -131,11 +143,6 @@ const Raffle: React.FC = () => {
         setJackpotWinners(jw);
         setLoadingJackpotWinners(false);
 
-        // Also fetch last jackpot winner
-        const ljw = await getLastJackpotWinner();
-        setLastJackpotWinner(ljw);
-        setLoadingLastJackpot(false);
-
         // Fetch overall statistics
         const os = await getOverallStats();
         setOverallStats(os);
@@ -144,7 +151,6 @@ const Raffle: React.FC = () => {
         // Fetch historical jackpot winners
         const hjw = await getHistoricalJackpotWinners(15);
         setHistoricalJackpotWinners(hjw);
-        setLoadingHistoricalJackpots(false);
       } catch (e) {
         console.error('Basic init error:', e);
       }
@@ -167,7 +173,18 @@ const Raffle: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 500));
 
         const u = await getUserInfo(wallet.address);
-        setUserData(u);
+        if (u) {
+          setUserData(u);
+        } else {
+          // Set default values when API fails
+          setUserData({
+            tickets: 0,
+            ticketsBps: 0,
+            freeTicketClaimed: false,
+            lastClaimTimestamp: 0,
+            winningsClaimable: 0
+          });
+        }
 
         // Check allowance with retry mechanism
         let allowance = 0;
@@ -224,7 +241,9 @@ const Raffle: React.FC = () => {
   useEffect(() => {
     const poll = setInterval(async () => {
       const s = await getRaffleStats();
-      setStats(s);
+      if (s) {
+        setStats(s);
+      }
     }, 30000);
 
     // Countdown timer every 1s
@@ -412,7 +431,9 @@ const Raffle: React.FC = () => {
 
       showMessage(`🎟️ ${buyAmount} ticket(s) purchased!`, 'success');
       const u = await getUserInfo(wallet.address);
-      setUserData(u);
+      if (u) {
+        setUserData(u);
+      }
       const allowance = await checkUSDCAllowance(wallet.address);
       setUsdcAllowance(allowance);
     } catch (e: any) {
@@ -738,68 +759,7 @@ const Raffle: React.FC = () => {
               </div>
             ) : (
               <div className="text-center py-6 text-gray-400">
-                <p className="text-xs">Statistics unavailable</p>
-              </div>
-            )}
-          </div>
-
-          {/* Last Jackpot Winner */}
-          <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 rounded-2xl p-4 mb-4 border border-yellow-500/30">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Trophy size={14} className="text-yellow-300" /> Last Jackpot Winner
-              </h3>
-              <a
-                href="https://docs.megapot.io/deep-dive/provably-fair"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-yellow-300 hover:text-yellow-200 transition-colors"
-              >
-                Provably Fair →
-              </a>
-            </div>
-
-            {loadingLastJackpot ? (
-              <div className="text-center py-6 text-gray-400">
-                <Loader2 className="animate-spin mx-auto mb-2" size={20} />
-                <p className="text-xs font-mono">Loading Last Winner...</p>
-              </div>
-            ) : (lastJackpotWinner || overallStats?.lastJackpotWinner) ? (
-              <div className="text-center">
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-yellow-300 mb-1">
-                    {(lastJackpotWinner?.address || overallStats?.lastJackpotWinner?.winner || '').slice(0, 6)}...{(lastJackpotWinner?.address || overallStats?.lastJackpotWinner?.winner || '').slice(-4)}
-                  </p>
-                  <p className="text-sm text-gray-300">won</p>
-                </div>
-
-                <div className="text-3xl font-black text-white mb-3">
-                  ${(lastJackpotWinner?.prize || overallStats?.lastJackpotWinner?.prize || 0).toLocaleString()}
-                </div>
-
-                <div className="text-xs text-gray-400 space-y-1">
-                  <p>Results</p>
-                  <p className="text-sm text-gray-300">
-                    Ticket #{lastJackpotWinner?.ticketCount || overallStats?.lastJackpotWinner?.winningTicket || 'N/A'} won
-                  </p>
-
-                  {lastJackpotWinner?.txHash && (
-                    <div className="mt-2">
-                      <a
-                        href={`https://basescan.org/tx/${lastJackpotWinner.txHash}#eventlog`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                      >
-                        Tx https://basescan.org/tx/{lastJackpotWinner.txHash.slice(0, 10)}...{lastJackpotWinner.txHash.slice(-8)}#eventlog
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-6 text-gray-400">
-                <p className="text-xs">No recent jackpot winner</p>
+                <p className="text-xs">Statistics temporarily unavailable</p>
               </div>
             )}
           </div>

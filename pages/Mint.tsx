@@ -528,6 +528,57 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
     }
   };
 
+  const handleTestMintAndShare = async (tokenId: number = 1) => {
+  try {
+    showMessage('🔄 Test minting NFT...', 'info');
+
+    // 1. Fetch real local metadata (preferred)
+    let nft = await fetchLocalMetadataWithCache(tokenId);
+
+    // 2. Hard fallback (never break UX)
+    if (!nft) {
+      nft = {
+        id: tokenId.toString(),
+        name: `BASTARD DEGAN PHUNK #${tokenId}`,
+        image: `https://fcphunksmini.vercel.app/token/${tokenId}.webp`,
+        description: `Test mint for Farcaster mini app`,
+        attributes: [],
+        isAnimated: false
+      };
+    }
+
+    // 3. Update UI state (exactly like real mint)
+    setMintedNFTs([nft]);
+    setMintedNFT(nft);
+    setSelectedTestNFT(nft);
+    setShowSuccess(true);
+
+    showMessage('🎉 Test mint successful!', 'success');
+
+    // 4. Build Warpcast share (NFT IMAGE + APP EMBED)
+    const nftImageUrl = nft.image.startsWith('ipfs://')
+      ? `https://ipfs.io/ipfs/${nft.image.replace('ipfs://', '')}`
+      : nft.image;
+
+    const text = `I just minted ${nft.name} ⚡️
+Mint yours and enter today’s jackpot 👇`;
+
+    const warpcastUrl =
+      `https://warpcast.com/~/compose` +
+      `?text=${encodeURIComponent(text)}` +
+      `&embeds[]=${encodeURIComponent(nftImageUrl)}` +
+      `&embeds[]=${encodeURIComponent(APP_URL)}`;
+
+    // 5. Open Warpcast composer
+    window.open(warpcastUrl, '_blank');
+
+  } catch (error: any) {
+    console.error('Test mint + share failed:', error);
+    showMessage(error?.message || 'Test mint failed', 'error');
+  }
+};
+
+
   const handleShare = async () => {
     if (!mintedNFT) return;
 
@@ -538,17 +589,14 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       setTimeout(() => setShareRewardMsg(''), 3000);
     }
 
-    // 2. Fetch current jackpot pool balance with better error handling
+    // 2. Fetch current jackpot pool balance
     let jackpotBalance = 0;
     try {
       const raffleStats = await getRaffleStats();
       jackpotBalance = raffleStats.potSizeUSD;
-      console.log('Current jackpot balance from API:', jackpotBalance);
       
-      // If we get the fallback value (1000), try to get the real balance from the raffle page state
       if (jackpotBalance === 1000) {
-        console.warn('Got fallback value, trying to fetch from raffle page endpoint...');
-        // Try the same endpoint the raffle page uses
+        // Try direct API fetch if fallback detected
         const response = await fetch('https://api.megapot.io/api/v1/jackpot-round-stats/active', {
           headers: {
             'Accept': 'application/json',
@@ -561,37 +609,55 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
           const realBalance = parseFloat(data.prizeUsd) || 0;
           if (realBalance > 1000) {
             jackpotBalance = realBalance;
-            console.log('Real jackpot balance from direct API:', jackpotBalance);
           }
         }
       }
     } catch (error) {
       console.warn('Failed to fetch jackpot balance:', error);
-      // Use fallback value if API fails
-      jackpotBalance = 825406; // Use the actual value you mentioned
+      jackpotBalance = 825406; // Fallback
     }
 
-    // 3. Create share content with actual jackpot balance
-    let text: string;
-    let embedUrl: string;
+    const formattedBalance = jackpotBalance >= 1000 
+      ? `$${(jackpotBalance / 1000).toFixed(1)}K` 
+      : `$${jackpotBalance.toFixed(0)}`;
+
+    // 3. Prepare Share Data
+    let text = '';
+    let imageUrl = '';
+    let appUrl = APP_URL; // Base App URL
 
     if (mintedNFTs.length > 1) {
-      // Multiple NFTs - embed the app URL with actual jackpot balance
-      const formattedBalance = jackpotBalance >= 1000 ? `$${(jackpotBalance / 1000).toFixed(1)}K` : `$${jackpotBalance.toFixed(0)}`;
+      // --- BULK MINT ---
       text = `I just minted ${mintedNFTs.length} Bastard DeGAN Phunks! 🎉 Current jackpot pool: ${formattedBalance}! Mint yours now and participate in Today's MEGAPOT JACKPOT VALUE Raffle!`;
-      embedUrl = APP_URL;
       
-      const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embedUrl)}`;
-      window.open(warpcastUrl, '_blank');
+      // Use the first NFT as the representative image
+      const firstNFT = mintedNFTs[0];
+      imageUrl = firstNFT.image.startsWith('ipfs://')
+        ? `https://ipfs.io/ipfs/${firstNFT.image.replace('ipfs://', '')}`
+        : firstNFT.image;
+
     } else {
-      // Single NFT - embed the app URL with actual jackpot balance
-      const formattedBalance = jackpotBalance >= 1000 ? `$${(jackpotBalance / 1000).toFixed(1)}K` : `$${jackpotBalance.toFixed(0)}`;
+      // --- SINGLE MINT ---
       text = `I just minted ${mintedNFT.name}! 🎉 Current jackpot pool: ${formattedBalance}! Verify my Phunk on Base and mint yours! ⚡️`;
-      embedUrl = APP_URL;
       
-      const warpcastUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embedUrl)}`;
-      window.open(warpcastUrl, '_blank');
+      // Use the single NFT image
+      imageUrl = mintedNFT.image.startsWith('ipfs://')
+        ? `https://ipfs.io/ipfs/${mintedNFT.image.replace('ipfs://', '')}`
+        : mintedNFT.image;
+        
+      // Optionally add query params to app URL if supported by the frame for dynamic content
+      // accessing specific token data
+      appUrl = `${APP_URL}?nft=${encodeURIComponent(imageUrl)}&name=${encodeURIComponent(mintedNFT.name)}&balance=${encodeURIComponent(formattedBalance)}`;
     }
+
+    // 4. Construct Warpcast URL with TWO embeds: Image and App
+    const warpcastUrl = 
+      `https://warpcast.com/~/compose` +
+      `?text=${encodeURIComponent(text)}` +
+      `&embeds[]=${encodeURIComponent(imageUrl)}` +
+      `&embeds[]=${encodeURIComponent(appUrl)}`;
+
+    window.open(warpcastUrl, '_blank');
   };
 
   return (
@@ -667,8 +733,8 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
           {minting ? 'MINTING...' : wallet.connected ? `MINT ${quantity} (${(stats.price * quantity).toFixed(3)} ETH)` : 'CONNECT WALLET'}
         </button>
 
-        {/* Test Buttons for Development - Commented out for production */}
-        {/* <div className="mt-3 flex gap-2">
+        {/* Test Buttons for Development */}
+        <div className="mt-3 flex gap-2">
           <button
             onClick={handleTestMint}
             className="flex-1 bg-purple-600/20 text-purple-400 border border-purple-600/50 py-2 rounded-lg text-xs font-bold hover:bg-purple-600/30 transition-colors"
@@ -681,7 +747,13 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
           >
             Test Multi Mint
           </button>
-        </div> */}
+          <button
+            onClick={() => handleTestMintAndShare(10)}
+            className="flex-1 bg-green-600/20 text-green-400 border border-green-600/50 py-2 rounded-lg text-xs font-bold hover:bg-green-600/30 transition-colors"
+          >
+            Test Token #10
+          </button>
+        </div>
 
         <div className="mt-4 text-center">
           <a
