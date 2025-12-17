@@ -81,7 +81,7 @@ export const fetchCollectionStats = async (): Promise<CollectionStats> => {
     }
 
     const data = await response.json();
-    
+
     // Try to get totalSupply using Alchemy NFT API as fallback
     let totalSupply = 0;
     try {
@@ -89,11 +89,11 @@ export const fetchCollectionStats = async (): Promise<CollectionStats> => {
       const nftResponse = await fetch(
         `${ALCHEMY_BASE_URL}/${ALCHEMY_API_KEY}/getNFTsForCollection?contractAddress=${CONTRACT_ADDRESS}&withMetadata=false`
       );
-      
+
       if (nftResponse.ok) {
         const nftData = await nftResponse.json();
         console.log('NFT collection response:', nftData);
-        
+
         if (nftData.nfts && Array.isArray(nftData.nfts)) {
           totalSupply = nftData.nfts.length;
           console.log('TotalSupply from NFT collection:', totalSupply);
@@ -106,7 +106,7 @@ export const fetchCollectionStats = async (): Promise<CollectionStats> => {
     } catch (error) {
       console.warn('Failed to get totalSupply from NFT collection:', error);
     }
-    
+
     // If NFT API failed, try RPC call as last resort
     if (totalSupply === 0) {
       try {
@@ -120,11 +120,11 @@ export const fetchCollectionStats = async (): Promise<CollectionStats> => {
             id: 1
           })
         });
-        
+
         if (supplyResponse.ok) {
           const supplyData = await supplyResponse.json();
           console.log('TotalSupply RPC response:', supplyData);
-          
+
           if (supplyData.error) {
             console.warn('TotalSupply RPC error:', supplyData.error);
           } else if (supplyData.result && supplyData.result !== '0x') {
@@ -141,28 +141,55 @@ export const fetchCollectionStats = async (): Promise<CollectionStats> => {
       }
     }
 
-    const stats: CollectionStats = {
-      totalSupply: totalSupply,
+    // Fetch dynamic price from contract
+    let contractPrice = 0;
+    try {
+      const priceResponse = await fetch(`${ALCHEMY_BASE_URL}/${ALCHEMY_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'eth_call',
+          params: [{ to: CONTRACT_ADDRESS, data: SELECTORS.cost }, 'latest'],
+          id: 1
+        })
+      });
+
+      if (priceResponse.ok) {
+        const priceData = await priceResponse.json();
+        console.log('Price RPC response:', priceData);
+        if (priceData.result && priceData.result !== '0x') {
+          const wei = parseInt(priceData.result, 16);
+          contractPrice = wei / 1e18;
+          console.log('Contract price parsed:', contractPrice);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to get price from contract:', error);
+    }
+
+    totalSupply: totalSupply,
       maxSupply: parseInt(data.maxSupply || '11305', 10),
-      price: parseFloat(data.openSea?.floorPrice || '0.002') || 0.002
-    };
+        // Use fetched contract price if available, otherwise fallback
+        price: contractPrice > 0 ? contractPrice : (parseFloat(data.openSea?.floorPrice || '0.0003') || 0.0003)
+  };
 
-    // Cache the results
-    cachedStats = stats;
-    lastCacheTime = Date.now();
-    
-    console.log('Successfully fetched collection stats:', stats);
-    return stats;
+  // Cache the results
+  cachedStats = stats;
+  lastCacheTime = Date.now();
 
-  } catch (error) {
-    console.error("Error fetching collection stats:", error);
-    // Return fallback values if all methods fail
-    return {
-      totalSupply: cachedStats?.totalSupply || 0,
-      maxSupply: 11305,
-      price: 0.002
-    };
-  }
+  console.log('Successfully fetched collection stats:', stats);
+  return stats;
+
+} catch (error) {
+  console.error("Error fetching collection stats:", error);
+  // Return fallback values if all methods fail
+  return {
+    totalSupply: cachedStats?.totalSupply || 0,
+    maxSupply: 11305,
+    price: 0.0003
+  };
+}
 };
 
 // Multiple RPC endpoints for rotation to avoid rate limiting
@@ -196,12 +223,12 @@ const fetchTraitsFromIPFS = async (tokenId: string): Promise<any[]> => {
   try {
     const metadataUrl = `${IPFS_GATEWAY}${tokenId}.json`;
     const response = await fetch(metadataUrl);
-    
+
     if (!response.ok) {
       console.warn(`Failed to fetch metadata for token ${tokenId}`);
       return [];
     }
-    
+
     const metadata = await response.json();
     return metadata.attributes || [];
   } catch (error) {
@@ -219,7 +246,7 @@ export const fetchUserNFTs = async (address: string): Promise<NFT[]> => {
   }
 
   console.log(`Fetching NFTs for ${address} using Alchemy REST API...`);
-  
+
   try {
     // Use Alchemy REST API to get NFTs for owner
     const response = await fetch(
@@ -232,7 +259,7 @@ export const fetchUserNFTs = async (address: string): Promise<NFT[]> => {
 
     const data = await response.json();
     const nfts = data.ownedNfts || [];
-    
+
     console.log(`Found ${nfts.length} NFTs for ${address}`);
     console.log('Raw Alchemy NFT sample:', JSON.stringify(nfts[0], null, 2));
 
@@ -240,7 +267,7 @@ export const fetchUserNFTs = async (address: string): Promise<NFT[]> => {
     const transformedNfts: NFT[] = nfts.map((nft: any) => {
       // Extract tokenId properly from Alchemy response structure
       let tokenId = nft.id?.tokenId || nft.tokenId;
-      
+
       // If tokenId is in hex format, convert to decimal
       if (typeof tokenId === 'string' && tokenId.startsWith('0x')) {
         tokenId = parseInt(tokenId, 16).toString();
@@ -249,12 +276,12 @@ export const fetchUserNFTs = async (address: string): Promise<NFT[]> => {
       } else if (typeof tokenId === 'string' && !isNaN(parseInt(tokenId))) {
         tokenId = parseInt(tokenId).toString();
       }
-      
+
       console.log(`Processing token ID: ${tokenId} (original: ${nft.id?.tokenId || nft.tokenId})`);
-      
+
       // Use our IPFS gateway for images as specified in the requirements
       const imageUrl = `${IPFS_GATEWAY}${tokenId}.webp`;
-      
+
       return {
         id: tokenId,
         name: `Bastard DeGAN Phunk #${tokenId}`,
@@ -269,7 +296,7 @@ export const fetchUserNFTs = async (address: string): Promise<NFT[]> => {
 
     // Cache the results
     nftCache.set(address, { data: transformedNfts, timestamp: Date.now() });
-    
+
     console.log(`Successfully fetched ${transformedNfts.length} NFTs using Alchemy REST API`);
     return transformedNfts;
 
@@ -284,7 +311,7 @@ const hexToString = (hex: string): string => {
   if (!hex || hex === '0x') return '';
   const clean = hex.replace('0x', '');
   if (clean.length % 2 !== 0) return '';
-  
+
   let result = '';
   for (let i = 0; i < clean.length; i += 2) {
     const hexPair = clean.substr(i, 2);

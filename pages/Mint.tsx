@@ -33,7 +33,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
 
   // Stats from Contract
   const [stats, setStats] = useState({
-    price: 0.002, // Fallback default
+    price: 0.0003, // Fallback default
     supply: 0,
     maxSupply: 11305
   });
@@ -42,7 +42,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
     const loadStats = async () => {
       const data = await fetchCollectionStats();
       setStats({
-        price: data.price > 0 ? data.price : 0.002,
+        price: data.price > 0 ? data.price : 0.0003,
         supply: data.totalSupply,
         maxSupply: data.maxSupply > 0 ? data.maxSupply : 11305
       });
