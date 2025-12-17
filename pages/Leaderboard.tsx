@@ -97,24 +97,29 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
 
   const totalScore = calculateTotalScore(userData, nftCount, animatedCount);
 
-  // Lazy update: Whenever totalScore changes (and is valid), update the global leaderboard
-  useEffect(() => {
-    if (wallet.connected && wallet.address && totalScore > 0) {
-      updateLeaderboard(wallet.address, totalScore).catch(console.error);
-    }
-  }, [totalScore, wallet.connected, wallet.address]);
+  // Fetch Leaderboard Function
+  const fetchLB = async () => {
+    const data = await getLeaderboard(50);
+    setLeaderboardData(data);
+  };
 
-  // Fetch Leaderboard Data
+  // Initial Fetch & Interval
   useEffect(() => {
-    const fetchLB = async () => {
-      const data = await getLeaderboard(50);
-      setLeaderboardData(data);
-    };
     fetchLB();
-    // Refresh every 30s
     const interval = setInterval(fetchLB, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Reactive Update: Whenever totalScore changes, update DB AND refresh list
+  useEffect(() => {
+    if (wallet.connected && wallet.address && totalScore > 0) {
+      // 1. Update the global store
+      updateLeaderboard(wallet.address, totalScore).then(() => {
+        // 2. Immediately refresh the list to show the new score
+        fetchLB();
+      }).catch(console.error);
+    }
+  }, [totalScore, wallet.connected, wallet.address]);
 
   // Helper for rank icon
   const getRankIcon = (rank: number) => {
