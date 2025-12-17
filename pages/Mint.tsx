@@ -6,6 +6,7 @@ import { fetchUserNFTs, fetchMetadata, fetchCollectionStats } from '../services/
 import { fetchBatchLocalMetadata, fetchLocalMetadataWithCache } from '../services/localMetadata';
 import { rewardUserShare } from '../services/db';
 import { getRaffleStats } from '../services/megapot';
+import LazyImage from '../components/LazyImage';
 
 interface MintProps {
   wallet: WalletState;
@@ -861,10 +862,11 @@ Current jackpot pool: ${formattedBalance}! 💰`;
                           : 'border-neon/30 hover:border-neon/60 hover:scale-105'
                           } group`}
                       >
-                        <img
+                        <LazyImage
                           src={nft.image}
                           alt={`${nft.name}`}
                           className="w-full h-full object-cover pixel-art transition-transform duration-300 group-hover:scale-105"
+                          containerClassName="w-full h-full"
                           style={{ imageRendering: 'auto' }}
                         />
                         {nft.isAnimated && (
@@ -907,10 +909,11 @@ Current jackpot pool: ${formattedBalance}! 💰`;
                 /* Single NFT Display */
                 <div className="space-y-4">
                   <div className="relative aspect-square rounded-xl overflow-hidden border-2 border-neon/30">
-                    <img
+                    <LazyImage
                       src={mintedNFT!.image}
                       alt="Minted NFT"
                       className="w-full h-full object-cover pixel-art"
+                      containerClassName="w-full h-full"
                       style={{ imageRendering: 'auto' }}
                     />
                     {mintedNFT!.isAnimated && (
@@ -994,13 +997,13 @@ Current jackpot pool: ${formattedBalance}! 💰`;
                       onClick={() => loadTraitsForNFT(nft)}
                       className="relative aspect-square bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-neon transition-colors group"
                     >
-                      <img
+                      <LazyImage
                         src={nft.image}
                         alt={nft.name}
                         className="w-full h-full object-cover pixel-art"
+                        containerClassName="w-full h-full"
                         style={{ imageRendering: 'auto' }}
-                        loading="lazy"
-                        onError={(e) => {
+                        onError={(e: any) => {
                           e.currentTarget.src = `${IPFS_GATEWAY}${nft.id}.webp`;
                         }}
                       />
@@ -1030,13 +1033,14 @@ Current jackpot pool: ${formattedBalance}! 💰`;
                 <div className="flex flex-col md:flex-row">
                   {/* NFT Image */}
                   <div className="md:w-1/2 aspect-square relative">
-                    <img
+                    <LazyImage
                       src={selectedNFT.image}
                       alt={selectedNFT.name}
                       className="w-full h-full object-cover"
+                      containerClassName="w-full h-full"
                       style={{ imageRendering: 'auto' }}
-                      loading="lazy"
-                      onError={(e) => {
+                      onError={(e: any) => {
+                        // Fallback logic mostly handled by component now, but custom onError still works if passed
                         e.currentTarget.src = `${IPFS_GATEWAY}${selectedNFT.id}.webp`;
                       }}
                     />
