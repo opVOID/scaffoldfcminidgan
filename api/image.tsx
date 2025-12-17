@@ -1,8 +1,10 @@
+import { ImageResponse } from '@vercel/og';
+
 export const config = {
     runtime: 'edge',
 };
 
-export default async function handler(request) {
+export default async function handler(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
@@ -11,57 +13,109 @@ export default async function handler(request) {
             return new Response('Missing ID', { status: 400 });
         }
 
-        // Hardcoded CID
         const IMAGES_CID = "bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey";
 
-        // Try multiple IPFS gateways for reliability
-        // Prioritize dweb.link and cloudflare as they are generally faster for images
+        // 1. Array of Gateways
         const gateways = [
             `https://dweb.link/ipfs/${IMAGES_CID}/${id}.webp`,
             `https://cloudflare-ipfs.com/ipfs/${IMAGES_CID}/${id}.webp`,
             `https://ipfs.io/ipfs/${IMAGES_CID}/${id}.webp`,
         ];
 
-        // Fetch and proxy the actual image
-        let response;
+        // 2. Fetch with Fast Failover
+        let imageBuffer: ArrayBuffer | null = null;
 
         for (const gateway of gateways) {
             try {
-                // Reduced timeout to 5s to fail faster to the next gateway
-                response = await fetch(gateway, {
-                    signal: AbortSignal.timeout(5000)
+                const response = await fetch(gateway, {
+                    signal: AbortSignal.timeout(4000) // 4s timeout
                 });
 
                 if (response.ok) {
-                    console.log(`Serving image from ${gateway}`);
+                    imageBuffer = await response.arrayBuffer();
+                    console.log(`Fetched image from ${gateway}`);
                     break;
                 }
             } catch (err) {
-                console.error(`Failed to fetch from ${gateway}:`, err);
-                continue; // Try next gateway
+                console.error(`Failed ${gateway}`, err);
+                continue;
             }
         }
 
-        if (!response || !response.ok) {
-            // Fallback to a hardcoded placeholder if all IPFS fails (prevents broken image icon)
-            return Response.redirect('https://fcphunksmini.vercel.app/favicon.webp', 302);
+        // 3. Fallback / Placeholder Logic
+        if (!imageBuffer) {
+            // Return a generated "Loading" placeholder
+            return new ImageResponse(
+                (
+                    <div
+                        style={{
+                            height: '100%',
+                            width: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#17182b',
+                            color: '#fff',
+                            fontSize: 48,
+                            fontWeight: 'bold',
+                        }}
+                    >
+                        <div style={{ marginBottom: 20 }}>Bastard DeGAN Phunk #{id}</div>
+                        <div style={{ fontSize: 24, color: '#00ff94' }}>Preview Loading...</div>
+                    </div>
+                ),
+                {
+                    width: 1080,
+                    height: 1080,
+                },
+            );
         }
 
-        // Return the image directly with proper headers
-        // STREAMING: Pass response.body directly instead of awaiting arrayBuffer()
-        return new Response(response.body, {
-            status: 200,
-            headers: {
-                'Content-Type': 'image/webp',
-                'Cache-Control': 'public, max-age=31536000, immutable',
-                'Access-Control-Allow-Origin': '*',
+        // 4. Optimize & Serve
+        // Use ImageResponse to resize/format the raw buffer
+        // standardizing it to 1080x1080 WebP/PNG
+        return new ImageResponse(
+            (
+                <div
+                    style={{
+                        display: 'flex',
+                        height: '100%',
+                        width: '100%',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#17182b',
+                    }}
+                >
+                    <img
+                        src={imageBuffer as any}
+                        style={{
+                            height: '100%',
+                            width: '100%',
+                            objectFit: 'cover',
+                        }}
+                    />
+                </div>
+            ),
+            {
+                width: 1080,
+                height: 1080,
+                headers: {
+                    'Cache-Control': 'public, max-age=31536000, immutable',
+                },
             },
-        });
+        );
 
     } catch (e: any) {
         console.error('Image proxy error:', e);
-        return new Response(`Failed to serve image: ${e.message}`, {
-            status: 500,
-        });
+        // Fallback Error Image
+        return new ImageResponse(
+            (
+                <div style={{ background: 'red', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 60 }}>
+                    Error Loading Image
+                </div>
+            ),
+            { width: 1080, height: 1080 }
+        );
     }
 }
