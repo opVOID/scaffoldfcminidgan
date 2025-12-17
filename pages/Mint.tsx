@@ -648,7 +648,7 @@ Mint yours and enter today’s jackpot 👇`;
 
     if (mintedNFTs.length > 1) {
       // --- BULK MINT ---
-      text = `I just minted ${mintedNFTs.length} Bastard DeGAN Phunks! 🎉 Current jackpot pool: ${formattedBalance}! Mint yours now and participate in Today's MEGAPOT JACKPOT VALUE Raffle!`;
+      text = `I just minted ${mintedNFTs.length} Bastard DeGAN Phunks! 🎉 Current jackpot pool: ${formattedBalance}! Mint yours now and participate in Today's MEGAPOT JACKPOT Raffle!`;
 
       // Use the first NFT as the representative image
       const firstNFT = mintedNFTs[0];
@@ -657,7 +657,7 @@ Mint yours and enter today’s jackpot 👇`;
 
     } else {
       // --- SINGLE MINT ---
-      text = `I just minted ${mintedNFT.name}! 🎉 Current jackpot pool: ${formattedBalance}! Verify my Phunk on Base and mint yours! ⚡️`;
+      text = `I just minted ${mintedNFT.name}! 🎉 Current jackpot pool: ${formattedBalance}! mint yours and claim a Free MEGAPOT JACKPOT Raffle Ticket every day! ⚡️`;
 
       // Use the image directly from metadata
       imageUrl = mintedNFT.image;
