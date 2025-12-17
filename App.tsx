@@ -20,7 +20,7 @@ declare global {
 import { useMiniApp } from '@neynar/react';
 
 function App() {
-  const { wallet, connect } = useWallet();
+  const { wallet, connect, disconnect } = useWallet();
   const [activePage, setActivePage] = useState<PageType>('mint');
   const { isSDKLoaded, actions, added } = useMiniApp();
   const hasAttemptedToAdd = React.useRef(false);
@@ -77,7 +77,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-neon selection:text-black">
-      <Header wallet={wallet} onConnect={connect} />
+      <Header wallet={wallet} onConnect={connect} onDisconnect={disconnect} />
 
       {renderPage()}
 

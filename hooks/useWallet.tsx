@@ -99,6 +99,15 @@ export const useWallet = () => {
     }
   }, [checkNetwork]);
 
+  const disconnect = useCallback(() => {
+    setWallet({
+      address: null,
+      chainId: null,
+      connected: false,
+      providerName: null,
+    });
+  }, []);
+
   useEffect(() => {
     const provider = getWalletProvider();
     if (provider) {
@@ -124,7 +133,7 @@ export const useWallet = () => {
           if (accounts.length > 0) {
             const chainId = parseInt(await provider.request({ method: 'eth_chainId' }), 16);
             const walletName = getWalletName(provider);
-            
+
             console.log('Found existing connection:', accounts[0]);
             setWallet({
               address: accounts[0],
@@ -142,5 +151,5 @@ export const useWallet = () => {
     }
   }, []);
 
-  return { wallet, connect };
+  return { wallet, connect, disconnect };
 };
