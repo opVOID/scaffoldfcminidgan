@@ -29,10 +29,14 @@ export default async function handler(request: Request) {
         // 2. Fetch with Fast Failover
         let imageBuffer: ArrayBuffer | null = null;
 
+        // A. Try FTP First
         for (const gateway of gateways) {
             try {
                 const response = await fetch(gateway, {
-                    signal: AbortSignal.timeout(4000) // 4s timeout
+                    signal: AbortSignal.timeout(8000), // Increased to 8s
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    }
                 });
 
                 if (response.ok) {
@@ -43,6 +47,26 @@ export default async function handler(request: Request) {
             } catch (err) {
                 console.error(`Failed ${gateway}`, err);
                 continue;
+            }
+        }
+
+        // B. Try Bastard GAN Punks API (Arweave) if FTP failed
+        if (!imageBuffer) {
+            try {
+                // Fetch metadata to get Arweave URL
+                const metaRes = await fetch(`https://api.bastardganpunks.club/${id}`, { signal: AbortSignal.timeout(3000) });
+                if (metaRes.ok) {
+                    const meta = await metaRes.json();
+                    if (meta.imageArweave) {
+                        const arRes = await fetch(meta.imageArweave, { signal: AbortSignal.timeout(8000) });
+                        if (arRes.ok) {
+                            imageBuffer = await arRes.arrayBuffer();
+                            console.log(`Fetched image from Arweave: ${meta.imageArweave}`);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Arweave Fetch Failed", e);
             }
         }
 

@@ -150,26 +150,37 @@ export const saveSettings = async (address: string, settings: UserSettings): Pro
 export const updateLeaderboard = async (address: string, score: number) => {
   if (!address) return;
   // Use ZADD to update the score in the sorted set "leaderboard"
-  // Score is arguably volatile so we update it whenever we calculate it
-  await kvRequest("ZADD", ["leaderboard", score, address]);
+  // Normalize to lowercase to prevent duplicates
+  await kvRequest("ZADD", ["leaderboard", score, address.toLowerCase()]);
 };
 
 export const getLeaderboard = async (limit: number = 50): Promise<{ address: string, score: number }[]> => {
   // Use ZREVRANGE to get top scores (highest first)
-  // args: key, start, stop, WITHSCORES
-  const result = await kvRequest("ZREVRANGE", ["leaderboard", 0, limit - 1, "WITHSCORES"]);
+  // Fetch slightly more to account for potential duplicates we'll filter out
+  const fetchLimit = limit + 10;
+  const result = await kvRequest("ZREVRANGE", ["leaderboard", 0, fetchLimit - 1, "WITHSCORES"]);
 
   if (!result || !Array.isArray(result)) return [];
 
   // Result comes back as [address, score, address, score...]
   const leaderBoard: { address: string, score: number }[] = [];
+  const seenAddresses = new Set<string>();
+
   for (let i = 0; i < result.length; i += 2) {
-    leaderBoard.push({
-      address: result[i],
-      score: parseInt(result[i + 1])
-    });
+    const rawAddress = result[i];
+    const score = parseInt(result[i + 1]);
+    const normalizedAddress = rawAddress.toLowerCase();
+
+    if (!seenAddresses.has(normalizedAddress)) {
+      seenAddresses.add(normalizedAddress);
+      leaderBoard.push({
+        address: normalizedAddress, // Return normalized address
+        score: score
+      });
+    }
   }
-  return leaderBoard;
+
+  return leaderBoard.slice(0, limit);
 };
 
 
