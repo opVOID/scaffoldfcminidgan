@@ -6,6 +6,7 @@ import { fetchUserNFTs, fetchMetadata, fetchCollectionStats } from '../services/
 import { fetchBatchLocalMetadata, fetchLocalMetadataWithCache } from '../services/localMetadata';
 import { rewardUserShare } from '../services/db';
 import { getRaffleStats } from '../services/megapot';
+import { getPhunkImageURL } from '../utils/getPhunkImageURL';
 import LazyImage from '../components/LazyImage';
 
 interface MintProps {
@@ -303,7 +304,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
                 mintedNFTsData.push({
                   id: tokenId.toString(),
                   name: `Bastard DeGAN Phunk #${tokenId}`,
-                  image: `https://fcphunksmini.vercel.app/token/${tokenId}.webp`,
+                  image: getPhunkImageURL(tokenId),
                   description: `Bastard DeGAN Phunk #${tokenId} - Minted on Base chain`,
                   attributes: [],
                   isAnimated: false
@@ -331,7 +332,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
             fallbackNFTs.push({
               id: (nextTokenId + i).toString(),
               name: `Bastard DeGAN Phunk #${nextTokenId + i}`,
-              image: `https://fcphunksmini.vercel.app/token/${nextTokenId + i}.webp`,
+              image: getPhunkImageURL(nextTokenId + i),
               description: `Bastard DeGAN Phunk #${nextTokenId + i} - Minted on Base chain`,
               attributes: [],
               isAnimated: false
@@ -541,7 +542,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
         nft = {
           id: tokenId.toString(),
           name: `BASTARD DEGAN PHUNK #${tokenId}`,
-          image: `https://fcphunksmini.vercel.app/token/${tokenId}.webp`,
+          image: getPhunkImageURL(tokenId),
           description: `Test mint for Farcaster mini app`,
           attributes: [],
           isAnimated: false
