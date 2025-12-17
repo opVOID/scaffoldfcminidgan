@@ -558,7 +558,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
 
       // 4. Build Warpcast share
       // Use the clean /share/:id route
-      const appUrl = `${APP_URL}/share/${nft.id}`;
+      const appUrl = `${APP_URL}/share/${nft.id}?ts=${Date.now()}`;
 
       const text = `I just minted ${nft.name} ⚡️
 Mint yours and enter today’s jackpot 👇`;
@@ -680,7 +680,7 @@ Current jackpot pool: ${formattedBalance}! 💰`;
       // The backend fetches metadata automatically, so we just need the ID.
       // If we don't have an ID (bulk mint fallback), we default to 1 or generic.
       const shareId = mintedNFT.id || '1';
-      appUrl = `${APP_URL}/share/${shareId}`;
+      appUrl = `${APP_URL}/share/${shareId}?ts=${Date.now()}`;
     }
 
     // 4. Share using Farcaster SDK (Preferred) or Fallback
