@@ -168,28 +168,29 @@ export const fetchCollectionStats = async (): Promise<CollectionStats> => {
       console.warn('Failed to get price from contract:', error);
     }
 
-    totalSupply: totalSupply,
+    const stats: CollectionStats = {
+      totalSupply: totalSupply,
       maxSupply: parseInt(data.maxSupply || '11305', 10),
-        // Use fetched contract price if available, otherwise fallback
-        price: contractPrice > 0 ? contractPrice : (parseFloat(data.openSea?.floorPrice || '0.0003') || 0.0003)
-  };
+      // Use fetched contract price if available, otherwise fallback
+      price: contractPrice > 0 ? contractPrice : (parseFloat(data.openSea?.floorPrice || '0.0003') || 0.0003)
+    };
 
-  // Cache the results
-  cachedStats = stats;
-  lastCacheTime = Date.now();
+    // Cache the results
+    cachedStats = stats;
+    lastCacheTime = Date.now();
 
-  console.log('Successfully fetched collection stats:', stats);
-  return stats;
+    console.log('Successfully fetched collection stats:', stats);
+    return stats;
 
-} catch (error) {
-  console.error("Error fetching collection stats:", error);
-  // Return fallback values if all methods fail
-  return {
-    totalSupply: cachedStats?.totalSupply || 0,
-    maxSupply: 11305,
-    price: 0.0003
-  };
-}
+  } catch (error) {
+    console.error("Error fetching collection stats:", error);
+    // Return fallback values if all methods fail
+    return {
+      totalSupply: cachedStats?.totalSupply || 0,
+      maxSupply: 11305,
+      price: 0.0003
+    };
+  }
 };
 
 // Multiple RPC endpoints for rotation to avoid rate limiting
