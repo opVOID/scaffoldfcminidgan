@@ -1,13 +1,34 @@
 export default function handler(req, res) {
     try {
-        const { nft, name } = req.query;
+        let nft, name, balance;
+
+        // Robust Parameter Parsing:
+        // 1. Try standard req.query (Vercel/Next)
+        if (req.query) {
+            nft = req.query.nft;
+            name = req.query.name;
+        }
+        // 2. Fallback to manual URL parsing (Raw Node)
+        if (!nft && req.url) {
+            const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+            nft = urlObj.searchParams.get('nft');
+            name = urlObj.searchParams.get('name');
+        }
 
         // Default values if params are missing
-        const imageUrl = nft || 'https://fcphunksmini.vercel.app/example.webp';
+        const rawImageUrl = nft || 'https://fcphunksmini.vercel.app/example.webp';
         const title = name ? `Minted ${name}` : 'Bastard DeGAN Phunks';
         const appUrl = 'https://fcphunksmini.vercel.app';
 
+        // Ensure we use a reliable gateway for the image preview
+        // If it's an ipfs.io link, swap to dweb.link which is often better for social cards
+        let imageUrl = rawImageUrl;
+        if (imageUrl.includes('ipfs.io/ipfs/')) {
+            imageUrl = imageUrl.replace('ipfs.io/ipfs/', 'dweb.link/ipfs/');
+        }
+
         // Construct the Mini App JSON content
+        // We explicitly use the 'imageUrl' for the splash screen too
         const miniappContent = JSON.stringify({
             version: "1",
             imageUrl: imageUrl,
@@ -23,10 +44,9 @@ export default function handler(req, res) {
             }
         });
 
-        // Valid HTML with Meta Tags
-        // fc:frame:button:1 must be 'link' type to open the Mini App URL or external link
-        // But for a Mini App, we usually want to launch the miniapp.
-        // However, 'link' with target=appUrl is the most reliable way to open the app from a frame.
+        const safeMiniappContent = miniappContent.replace(/'/g, "&apos;");
+
+        // HTML Output
         const html = `<!DOCTYPE html>
     <html>
       <head>
@@ -40,11 +60,13 @@ export default function handler(req, res) {
         <meta property="fc:frame:image" content="${imageUrl}" />
         <meta property="fc:frame:image:aspect_ratio" content="1:1" />
         
+        <!-- Interactive Button -->
         <meta property="fc:frame:button:1" content="Mint Your Phunk" />
         <meta property="fc:frame:button:1:action" content="link" />
         <meta property="fc:frame:button:1:target" content="${appUrl}" />
         
-        <meta name="fc:miniapp" content='${miniappContent.replace(/'/g, "&apos;")}' />
+        <!-- Mini App Deep Link -->
+        <meta name="fc:miniapp" content='${safeMiniappContent}' />
         
         <meta http-equiv="refresh" content="0;url=${appUrl}" />
       </head>
@@ -54,9 +76,13 @@ export default function handler(req, res) {
     </html>`;
 
         res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Cache-Control', 'public, max-age=60'); // Cache for 60s
         res.status(200).send(html);
+
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error');
+        console.error("API OG Error:", error);
+        // Return 200 with error info so it renders and we can see what happened
+        res.setHeader('Content-Type', 'text/html');
+        res.status(200).send(`<!DOCTYPE html><html><body><h1>Error</h1><p>${error.message}</p></body></html>`);
     }
 }
