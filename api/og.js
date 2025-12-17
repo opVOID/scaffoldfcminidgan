@@ -72,11 +72,11 @@ export default async function handler(req, res) {
         <!-- Farcaster Mini App Tag -->
         <meta name="fc:miniapp" content='${safeMiniappContent}' />
         
-        <!-- Redirect -->
-        <meta http-equiv="refresh" content="0;url=${appUrl}" />
+        <!-- Redirect to the NFT Image (IPFS/Dweb) for direct preview -->
+        <meta http-equiv="refresh" content="0;url=${imageUrl}" />
       </head>
       <body>
-        <p>Redirecting to <a href="${appUrl}">Bastard DeGAN Phunks</a>...</p>
+        <p>Redirecting to <a href="${imageUrl}">your Phunk...</a></p>
       </body>
     </html>
     `);
