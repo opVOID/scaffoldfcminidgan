@@ -1,106 +1,113 @@
 export default async function handler(req, res) {
     try {
-        // 1. Get Token ID from Query (rewritten from /share/:id)
         const { id } = req.query;
+        const shareId = id || '1';
 
-        // Fallback if accessed without ID or invalid
-        if (!id) {
-            return res.redirect(302, 'https://fcphunksmini.vercel.app');
-        }
-
-        // USER PROVIDED IMAGES CID
-        const IMAGES_CID = "bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey";
+        // 1. Construct Image URL (Using the efficient proxy)
+        const imageUrl = `https://fcphunksmini.vercel.app/api/image?id=${shareId}`;
         const appUrl = 'https://fcphunksmini.vercel.app';
+        let nftName = `Bastard DeGAN Phunk #${shareId}`;
 
-        // Construct the Proxy Image URL
-        // We point to our own API which fetches from IPFS and caches deeply (CDN)
-        const imageUrl = `https://fcphunksmini.vercel.app/api/image?id=${id}`;
-
-        // Default name if we can't fetch metadata (Optimistic rendering)
-        let nftName = `Bastard DeGAN Phunk #${id}`;
-
-        // Optional: Still try to fetch metadata for the correct Name, but don't block image on it
-        try {
-            const METADATA_CID = "bafybeibu47rax5yr4bdkl7gxqttyumkf54pl3jvwxdnxqbfqfytd6qfcvi";
-            const metadataUrl = `https://dweb.link/ipfs/${METADATA_CID}/${id}.json`;
-            const metadataRes = await fetch(metadataUrl, { signal: AbortSignal.timeout(2000) }); // Fast timeout
-            if (metadataRes.ok) {
-                const json = await metadataRes.json();
-                if (json.name) nftName = json.name;
-            }
-        } catch (e) {
-            // Ignore metadata fetch error, we have the image and ID
-        }
-
-
-        /* ----------------------------------------------------
-           3. Logic: Bot vs Human
-           ---------------------------------------------------- */
-        const ua = req.headers['user-agent'] || '';
-        // Expanded bot list for maximum coverage
-        const isBot = /discord|twitter|bot|crawler|facebot|slackbot|farcaster|telegram|whatsapp|facebook|meta/i.test(ua);
-
-        if (isBot) {
-            // Serve HTML for Bots
-            const miniappContent = JSON.stringify({
-                version: "1",
-                imageUrl: imageUrl,
-                button: {
-                    title: "Mint Your Phunk",
-                    action: {
-                        type: "launch_miniapp",
-                        name: "Bastard DeGAN Phunks",
-                        url: appUrl,
-                        splashImageUrl: imageUrl,
-                        splashBackgroundColor: "#17182b"
-                    }
+        // 2. Mini App Data
+        const miniappContent = JSON.stringify({
+            version: "1",
+            imageUrl: imageUrl,
+            button: {
+                title: "Mint Your Phunk",
+                action: {
+                    type: "launch_miniapp",
+                    name: "Bastard DeGAN Phunks",
+                    url: appUrl,
+                    splashImageUrl: imageUrl,
+                    splashBackgroundColor: "#17182b"
                 }
-            });
-            const safeMiniappContent = miniappContent.replace(/'/g, "&apos;");
+            }
+        });
+        const safeMiniappContent = miniappContent.replace(/'/g, "&apos;");
 
-            res.setHeader('Content-Type', 'text/html');
-            // Aggressive caching since the image CID is permanent/pinned
-            res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=43200');
+        // 3. Serve Visible HTML Page (No Redirect)
+        res.setHeader('Content-Type', 'text/html');
+        // Cache HTML for 1 hour, since the image proxy handles the heavy lifting
+        res.setHeader('Cache-Control', 'public, max-age=3600');
 
-            return res.end(`
+        return res.end(`
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
             <title>${nftName}</title>
             <meta property="og:title" content="${nftName}" />
-            <meta property="og:description" content="Minted on FCPhunks Mini. The based Phunks on Base." />
+            <meta property="og:description" content="Minted on FCPhunks Mini. Verify this Phunk on Base." />
+            
+            <!-- Robust Image Tags -->
             <meta property="og:image" content="${imageUrl}" />
-            <meta property="og:url" content="${appUrl}/share/${id}" />
+            <meta property="og:image:type" content="image/webp" />
+            <meta property="og:image:width" content="1080" />
+            <meta property="og:image:height" content="1080" />
+            
+            <meta property="og:url" content="${appUrl}/share/${shareId}" />
             <meta name="twitter:card" content="summary_large_image" />
     
             <!-- Farcaster Frame Tags -->
             <meta property="fc:frame" content="vNext" />
             <meta property="fc:frame:image" content="${imageUrl}" />
             <meta property="fc:frame:image:aspect_ratio" content="1:1" />
-            
             <meta property="fc:frame:button:1" content="Mint Your Phunk" />
             <meta property="fc:frame:button:1:action" content="link" />
             <meta property="fc:frame:button:1:target" content="${appUrl}" />
-            
             <meta name="fc:miniapp" content='${safeMiniappContent}' />
+
+            <style>
+                body {
+                    background-color: #17182b;
+                    color: white;
+                    font-family: system-ui, -apple-system, sans-serif;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100vh;
+                    margin: 0;
+                    text-align: center;
+                }
+                img {
+                    max-width: 90%;
+                    max-height: 70vh;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+                    margin-bottom: 20px;
+                }
+                .btn {
+                    background-color: #7C3AED;
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    transition: transform 0.2s;
+                }
+                .btn:hover {
+                    transform: scale(1.05);
+                }
+                h1 { margin-bottom: 8px; font-size: 1.5rem; }
+                p { color: #aaa; margin-bottom: 24px; }
+            </style>
           </head>
           <body>
             <h1>${nftName}</h1>
-            <img src="${imageUrl}" alt="${nftName}" />
+            <a href="${imageUrl}" target="_blank">
+                <img src="${imageUrl}" alt="${nftName}" />
+            </a>
+            <p>Recently minted on Base.</p>
+            <a href="${appUrl}?id=${shareId}" class="btn">Mint Your Phunk</a>
           </body>
         </html>
         `);
-        } else {
-            // Redirect Humans to the App
-            res.writeHead(302, { Location: appUrl });
-            return res.end();
-        }
 
     } catch (error) {
         console.error("API Share Error:", error);
-        // Recover gracefully
-        res.writeHead(302, { Location: 'https://fcphunksmini.vercel.app' });
-        return res.end();
+        res.writeHead(500);
+        res.end("Internal Error");
     }
 }
