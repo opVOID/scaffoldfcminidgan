@@ -12,9 +12,9 @@ export default async function handler(req, res) {
         const IMAGES_CID = "bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey";
         const appUrl = 'https://fcphunksmini.vercel.app';
 
-        // Construct the Direct Image URL (WebP) using dweb.link for performance
-        // We use dweb.link instead of ipfs.io because it handles social card previews significantly better.
-        const imageUrl = `https://dweb.link/ipfs/${IMAGES_CID}/${id}.webp`;
+        // Construct the Proxy Image URL
+        // We point to our own API which fetches from IPFS and caches deeply (CDN)
+        const imageUrl = `https://fcphunksmini.vercel.app/api/image?id=${id}`;
 
         // Default name if we can't fetch metadata (Optimistic rendering)
         let nftName = `Bastard DeGAN Phunk #${id}`;
