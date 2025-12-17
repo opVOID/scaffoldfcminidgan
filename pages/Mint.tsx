@@ -572,13 +572,14 @@ Mint yours and enter today’s jackpot 👇`;
           // @ts-ignore
           await window.farcaster.frame.sdk.actions.composeCast({
             text: text,
-            embeds: [appUrl]
+            embeds: [appUrl, APP_URL]
           });
         } else {
           const warpcastUrl =
             `https://warpcast.com/~/compose` +
             `?text=${encodeURIComponent(text)}` +
-            `&embeds[]=${encodeURIComponent(appUrl)}`;
+            `&embeds[]=${encodeURIComponent(appUrl)}` +
+            `&embeds[]=${encodeURIComponent(APP_URL)}`;
           window.open(warpcastUrl, '_blank');
         }
       } catch (err) {
@@ -586,7 +587,8 @@ Mint yours and enter today’s jackpot 👇`;
         const warpcastUrl =
           `https://warpcast.com/~/compose` +
           `?text=${encodeURIComponent(text)}` +
-          `&embeds[]=${encodeURIComponent(appUrl)}`;
+          `&embeds[]=${encodeURIComponent(appUrl)}` +
+          `&embeds[]=${encodeURIComponent(APP_URL)}`;
         window.open(warpcastUrl, '_blank');
       }
 
@@ -679,7 +681,7 @@ Mint yours and enter today’s jackpot 👇`;
         // @ts-ignore
         await window.farcaster.frame.sdk.actions.composeCast({
           text: text,
-          embeds: [appUrl]
+          embeds: [appUrl, APP_URL]
         });
         showMessage('Opened share dialog!', 'success');
       } else {
@@ -687,7 +689,8 @@ Mint yours and enter today’s jackpot 👇`;
         const warpcastUrl =
           `https://warpcast.com/~/compose` +
           `?text=${encodeURIComponent(text)}` +
-          `&embeds[]=${encodeURIComponent(appUrl)}`;
+          `&embeds[]=${encodeURIComponent(appUrl)}` +
+          `&embeds[]=${encodeURIComponent(APP_URL)}`;
         window.open(warpcastUrl, '_blank');
       }
     } catch (err) {
