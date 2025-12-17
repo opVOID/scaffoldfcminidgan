@@ -556,8 +556,8 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       showMessage('🎉 Test mint successful!', 'success');
 
       // 4. Build Warpcast share
-      // Use the clean /og/:id route
-      const appUrl = `${APP_URL}/og/${nft.id}`;
+      // Use the clean /share/:id route
+      const appUrl = `${APP_URL}/share/${nft.id}`;
 
       const text = `I just minted ${nft.name} ⚡️
 Mint yours and enter today’s jackpot 👇`;
@@ -665,11 +665,11 @@ Mint yours and enter today’s jackpot 👇`;
       const sharableImageUrl = imageUrl.replace('https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/');
 
       // 3. Construct the Clean Share URL
-      // This points to /og/:id which Vercel rewrites to /api/og?id=:id
+      // This points to /share/:id which Vercel rewrites to /api/share?id=:id
       // The backend fetches metadata automatically, so we just need the ID.
       // If we don't have an ID (bulk mint fallback), we default to 1 or generic.
       const shareId = mintedNFT.id || '1';
-      appUrl = `${APP_URL}/og/${shareId}`;
+      appUrl = `${APP_URL}/share/${shareId}`;
     }
 
     // 4. Share using Farcaster SDK (Preferred) or Fallback

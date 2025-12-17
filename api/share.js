@@ -80,7 +80,7 @@ export default async function handler(req, res) {
             <meta property="og:title" content="${cleanFields.name}" />
             <meta property="og:description" content="Minted on FCPhunks Mini. The based Phunks on Base." />
             <meta property="og:image" content="${cleanFields.image}" />
-            <meta property="og:url" content="${appUrl}/og/${id}" />
+            <meta property="og:url" content="${appUrl}/share/${id}" />
             <meta name="twitter:card" content="summary_large_image" />
     
             <!-- Farcaster Frame Tags -->

@@ -16,8 +16,8 @@
       "destination": "https://api.basescan.org/api/:path*"
     },
     {
-      "source": "/og/:id",
-      "destination": "/api/og?id=:id"
+      "source": "/share/:id",
+      "destination": "/api/share?id=:id"
     }
   ]
 }
