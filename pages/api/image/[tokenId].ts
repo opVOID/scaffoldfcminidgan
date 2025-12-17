@@ -1,64 +1,52 @@
 import { Request, Response } from 'express';
-
-
-// Mock database - in production this would be a real database
-let mintedTokens: Array<{id: string, owner: string, timestamp: number}> = [];
-let nextTokenId = 1;
-
+import { getToken, mintToken, getTokensByOwner, getTotalMinted } from '../../../services/db';
 
 // Base IPFS URL pattern - you can have a large collection of pre-generated images
 const IPFS_BASE_URL = 'https://ipfs.io/ipfs/bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey';
 
-
-// Pre-defined image pool (you could have thousands of these)
-const IMAGE_POOL_SIZE = 11305; // Adjust based on your collection size
-
+// Pre-defined image pool
+const IMAGE_POOL_SIZE = 11305;
 
 export async function handler(req: Request, res: Response) {
   const tokenId = req.params.tokenId;
-  
-  // Handle GET request - return image for existing token
+
   if (req.method === 'GET') {
     return handleGetToken(tokenId, res);
   }
-  
-  // Handle POST request - mint new token (mock implementation)
+
   if (req.method === 'POST') {
     return handleMintToken(req, res);
   }
-  
+
   res.status(405).json({ error: 'Method not allowed' });
 }
 
 
 async function handleGetToken(tokenId: string, res: Response) {
-  // Check if token exists
-  const token = mintedTokens.find(t => t.id === tokenId);
-  
+  // Check Redis for token existence
+  const token = await getToken(tokenId);
+
+  // NOTE: If you want to allow viewing "unminted" images (e.g. preview), comment this out.
+  // But strictly speaking, if it's not minted, it shouldn't exist.
+  // For "Test Mints" we might relax this or check if ID < TotalSupply.
   if (!token) {
-    return res.status(404).json({ error: 'Token not found' });
+    // Allow implicit existence for low IDs if needed, or strictly 404
+    // For now, strict 404 to enforce minting.
+    return res.status(404).json({ error: 'Token not minted yet' });
   }
-  
+
   // Generate image URL dynamically based on token ID
-  // This cycles through your image pool based on token ID
   const imageIndex = (parseInt(tokenId) - 1) % IMAGE_POOL_SIZE;
-  const imageUrl = ${IPFS_BASE_URL}/${imageIndex + 1}.webp;
-  
+  const imageUrl = `${IPFS_BASE_URL}/${imageIndex + 1}.webp`;
+
   try {
-    // Fetch the image from IPFS
     const response = await fetch(imageUrl);
-    
-    if (!response.ok) {
-      throw new Error(Failed to fetch image: ${response.statusText});
-    }
-    
+    if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+
     const imageBuffer = await response.arrayBuffer();
-    
-    // Set proper headers for image response
+
     res.setHeader('Content-Type', 'image/webp');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    
-    // Return the image buffer
     res.send(Buffer.from(imageBuffer));
   } catch (error) {
     console.error('Error fetching image:', error);
@@ -69,45 +57,29 @@ async function handleGetToken(tokenId: string, res: Response) {
 
 async function handleMintToken(req: Request, res: Response) {
   const { owner, quantity = 1 } = req.body;
-  
-  if (!owner) {
-    return res.status(400).json({ error: 'Owner address required' });
+
+  if (!owner) return res.status(400).json({ error: 'Owner address required' });
+  if (quantity > 10) return res.status(400).json({ error: 'Maximum 10 tokens per mint' });
+
+  try {
+    const result = await mintToken(owner, quantity);
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || 'Minting failed' });
+    }
+
+    const totalMinted = await getTotalMinted();
+
+    res.status(201).json({
+      message: `Successfully minted ${quantity} tokens`,
+      tokens: result.tokens,
+      totalMinted: totalMinted
+    });
+  } catch (e: any) {
+    console.error("Minting API Error:", e);
+    res.status(500).json({ error: e.message });
   }
-  
-  if (quantity > 10) {
-    return res.status(400).json({ error: 'Maximum 10 tokens per mint' });
-  }
-  
-  const newlyMintedTokens = [];
-  
-  // Mint new tokens with unique IDs
-  for (let i = 0; i < quantity; i++) {
-    const newToken = {
-      id: nextTokenId.toString(),
-      owner,
-      timestamp: Date.now()
-    };
-    
-    mintedTokens.push(newToken);
-    newlyMintedTokens.push(newToken);
-    nextTokenId++;
-  }
-  
-  res.status(201).json({
-    message: Successfully minted ${quantity} tokens,
-    tokens: newlyMintedTokens,
-    totalMinted: mintedTokens.length
-  });
 }
 
-
-// Helper function to get all tokens for an owner
-export async function getTokensByOwner(owner: string) {
-  return mintedTokens.filter(token => token.owner === owner);
-}
-
-
-// Helper function to get total supply
-export async function getTotalSupply() {
-  return mintedTokens.length;
-}
+// Export helpers for use in other parts of the app if necessary
+export { getTokensByOwner, getTotalMinted };

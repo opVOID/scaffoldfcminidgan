@@ -16,7 +16,11 @@ export default async function handler(request: Request) {
         const IMAGES_CID = "bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey";
 
         // 1. Array of Gateways
+        // 1. Array of Gateways
+        // FTP Host (Free Hosting) is the Source of Truth
         const gateways = [
+            `http://www.phunks.fwh.is/phunks/${id}.webp`,
+            // Fallbacks
             `https://dweb.link/ipfs/${IMAGES_CID}/${id}.webp`,
             `https://cloudflare-ipfs.com/ipfs/${IMAGES_CID}/${id}.webp`,
             `https://ipfs.io/ipfs/${IMAGES_CID}/${id}.webp`,

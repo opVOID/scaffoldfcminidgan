@@ -183,3 +183,65 @@ export const testConnection = async () => {
   const res = await kvSet('test_connection', { status: 'ok', timestamp: Date.now() });
   return { success: !!res, error: res ? null : "Failed to write" };
 }
+
+// --- MINTING LOGIC (Redis Backed) ---
+
+export interface MintedToken {
+  id: string;
+  owner: string;
+  timestamp: number;
+}
+
+export const getTotalMinted = async (): Promise<number> => {
+  const total = await kvGet('total_minted');
+  return total ? parseInt(total) : 0;
+};
+
+export const getToken = async (tokenId: string): Promise<MintedToken | null> => {
+  return await kvGet(`token:${tokenId}`);
+};
+
+export const mintToken = async (owner: string, quantity: number = 1): Promise<{ success: boolean, tokens: MintedToken[], error?: string }> => {
+  if (!owner) return { success: false, tokens: [], error: "Owner required" };
+
+  const tokens: MintedToken[] = [];
+
+  // We need atomic increments. For simplicity in this REST client, we'll do a read-modify-write 
+  // but ideally use INCR. Upstash REST supports INCR.
+  // Let's use INCR for total_minted to get the new ID reliably.
+
+  for (let i = 0; i < quantity; i++) {
+    const newIdRes = await kvRequest("INCR", ["total_minted"]);
+    if (newIdRes === null) return { success: false, tokens: [], error: "Database error (INCR)" };
+
+    const newTokenId = newIdRes.toString();
+    const newToken: MintedToken = {
+      id: newTokenId,
+      owner,
+      timestamp: Date.now()
+    };
+
+    // Save Token Data
+    await kvSet(`token:${newTokenId}`, newToken);
+
+    // Add to User's Collection (List of IDs)
+    await kvRequest("RPUSH", [`user:${owner.toLowerCase()}:tokens`, newTokenId]);
+
+    tokens.push(newToken);
+  }
+
+  return { success: true, tokens };
+};
+
+export const getTokensByOwner = async (owner: string): Promise<MintedToken[]> => {
+  // Get list of IDs
+  const tokenIds = await kvRequest("LRANGE", [`user:${owner.toLowerCase()}:tokens`, 0, -1]);
+  if (!tokenIds || !Array.isArray(tokenIds)) return [];
+
+  // Fetch all token details (could be optimized with MGET but we'll loop for now or use Promise.all)
+  const tokens = await Promise.all(tokenIds.map(async (id) => {
+    return await getToken(id);
+  }));
+
+  return tokens.filter(t => t !== null) as MintedToken[];
+};
