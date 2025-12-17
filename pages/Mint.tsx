@@ -555,17 +555,17 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
 
       showMessage('🎉 Test mint successful!', 'success');
 
-      // 4. Build Warpcast share (DYNAMIC FRAME)
-      const nftImageUrl = nft.image;
-
-      // Construct the dynamic frame URL
-      const appUrl = `${APP_URL}/api/og?nft=${encodeURIComponent(nftImageUrl)}&name=${encodeURIComponent(nft.name)}&balance=1000`; // Mock balance for test
+      // 4. Build Warpcast share
+      // Use the clean /og/:id route
+      const appUrl = `${APP_URL}/og/${nft.id}`;
 
       const text = `I just minted ${nft.name} ⚡️
 Mint yours and enter today’s jackpot 👇`;
 
-      // 5. Open Warpcast composer
-      // 4. Share using Farcaster SDK (Preferred)
+      const warpcastUrl =
+        `https://warpcast.com/~/compose` +
+        `?text=${encodeURIComponent(text)}` +
+        `&embeds[]=${encodeURIComponent(appUrl)}`;
       try {
         // @ts-ignore
         if (window.farcaster?.frame?.sdk?.actions?.composeCast) {
@@ -664,9 +664,12 @@ Mint yours and enter today’s jackpot 👇`;
       // dweb.link handles redirects correctly and is often faster for embeds
       const sharableImageUrl = imageUrl.replace('https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/');
 
-      // 3. Construct the App URL (which serves the Frame)
-      // We point to our serverless function /api/og which generates the dynamic metadata
-      appUrl = `${APP_URL}/api/og?nft=${encodeURIComponent(sharableImageUrl)}&name=${encodeURIComponent(mintedNFT.name || 'Phunk')}&balance=${encodeURIComponent(formattedBalance)}`;
+      // 3. Construct the Clean Share URL
+      // This points to /og/:id which Vercel rewrites to /api/og?id=:id
+      // The backend fetches metadata automatically, so we just need the ID.
+      // If we don't have an ID (bulk mint fallback), we default to 1 or generic.
+      const shareId = mintedNFT.id || '1';
+      appUrl = `${APP_URL}/og/${shareId}`;
     }
 
     // 4. Share using Farcaster SDK (Preferred) or Fallback
