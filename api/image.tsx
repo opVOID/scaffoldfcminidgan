@@ -1,4 +1,5 @@
 import { ImageResponse } from '@vercel/og';
+import { getPhunkImageURL } from '../utils/getPhunkImageURL';
 
 export const config = {
     runtime: 'edge',
@@ -13,13 +14,12 @@ export default async function handler(request: Request) {
             return new Response('Missing ID', { status: 400 });
         }
 
+        const tokenId = parseInt(id);
         const IMAGES_CID = "bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey";
 
-        // 1. Array of Gateways
-        // 1. Array of Gateways
-        // FTP Host (Free Hosting) is the Source of Truth
+        // 1. Array of Gateways - Use folder-aware URL first
         const gateways = [
-            `http://www.phunks.fwh.is/phunks/${id}.webp`,
+            getPhunkImageURL(tokenId), // Use our helper for phunksfirst/phunkssecond
             // Fallbacks
             `https://dweb.link/ipfs/${IMAGES_CID}/${id}.webp`,
             `https://cloudflare-ipfs.com/ipfs/${IMAGES_CID}/${id}.webp`,
