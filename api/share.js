@@ -55,7 +55,7 @@ export default async function handler(req, res) {
             <meta property="fc:frame:image:aspect_ratio" content="1:1" />
             <meta property="fc:frame:button:1" content="Mint Your Phunk" />
             <meta property="fc:frame:button:1:action" content="link" />
-            <meta property="fc:frame:button:1:target" content="${appUrl}" />
+            <meta property="fc:frame:button:1:target" content="${appUrl}?id=${shareId}" />
             <meta name="fc:miniapp" content='${safeMiniappContent}' />
 
             <style>

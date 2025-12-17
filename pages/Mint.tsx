@@ -569,28 +569,30 @@ Mint yours and enter today’s jackpot 👇`;
         `?text=${encodeURIComponent(text)}` +
         `&embeds[]=${encodeURIComponent(appUrl)}`;
       try {
+        const imageUrl = `https://fcphunksmini.vercel.app/api/image?id=${nft.id}`;
         // @ts-ignore
         if (window.farcaster?.frame?.sdk?.actions?.composeCast) {
           // @ts-ignore
           await window.farcaster.frame.sdk.actions.composeCast({
             text: text,
-            embeds: [appUrl, APP_URL]
+            embeds: [appUrl, imageUrl]
           });
         } else {
           const warpcastUrl =
             `https://warpcast.com/~/compose` +
             `?text=${encodeURIComponent(text)}` +
             `&embeds[]=${encodeURIComponent(appUrl)}` +
-            `&embeds[]=${encodeURIComponent(APP_URL)}`;
+            `&embeds[]=${encodeURIComponent(imageUrl)}`;
           window.open(warpcastUrl, '_blank');
         }
       } catch (err) {
         console.error("Error launching composeCast:", err);
+        const imageUrl = `https://fcphunksmini.vercel.app/api/image?id=${nft.id}`;
         const warpcastUrl =
           `https://warpcast.com/~/compose` +
           `?text=${encodeURIComponent(text)}` +
           `&embeds[]=${encodeURIComponent(appUrl)}` +
-          `&embeds[]=${encodeURIComponent(APP_URL)}`;
+          `&embeds[]=${encodeURIComponent(imageUrl)}`;
         window.open(warpcastUrl, '_blank');
       }
 
@@ -686,12 +688,13 @@ Current jackpot pool: ${formattedBalance}! 💰`;
 
     // 4. Share using Farcaster SDK (Preferred) or Fallback
     try {
+      const shareImageUrl = `https://fcphunksmini.vercel.app/api/image?id=${mintedNFT.id || '1'}`;
       // @ts-ignore - SDK might be loaded globally via script tag
       if (window.farcaster?.frame?.sdk?.actions?.composeCast) {
         // @ts-ignore
         await window.farcaster.frame.sdk.actions.composeCast({
           text: text,
-          embeds: [appUrl, APP_URL]
+          embeds: [appUrl, shareImageUrl]
         });
         showMessage('Opened share dialog!', 'success');
       } else {
@@ -700,16 +703,18 @@ Current jackpot pool: ${formattedBalance}! 💰`;
           `https://warpcast.com/~/compose` +
           `?text=${encodeURIComponent(text)}` +
           `&embeds[]=${encodeURIComponent(appUrl)}` +
-          `&embeds[]=${encodeURIComponent(APP_URL)}`;
+          `&embeds[]=${encodeURIComponent(shareImageUrl)}`;
         window.open(warpcastUrl, '_blank');
       }
     } catch (err) {
       console.error("Error launching composeCast:", err);
+      const shareImageUrl = `https://fcphunksmini.vercel.app/api/image?id=${mintedNFT.id || '1'}`;
       // Fallback if SDK call fails
       const warpcastUrl =
         `https://warpcast.com/~/compose` +
         `?text=${encodeURIComponent(text)}` +
-        `&embeds[]=${encodeURIComponent(appUrl)}`;
+        `&embeds[]=${encodeURIComponent(appUrl)}` +
+        `&embeds[]=${encodeURIComponent(shareImageUrl)}`;
       window.open(warpcastUrl, '_blank');
     }
   };
