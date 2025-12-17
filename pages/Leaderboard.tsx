@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { WalletState, UserData, FarcasterProfile } from '../types';
 import { Flame, Clock, ExternalLink } from 'lucide-react';
-import { checkInUser, getUserData, calculateTotalScore } from '../services/db';
+import { checkInUser, getUserData, calculateTotalScore, getLeaderboard, updateLeaderboard } from '../services/db';
 import { fetchUserNFTs } from '../services/web3';
 import { fetchFarcasterProfile } from '../services/farcaster';
 
@@ -15,6 +15,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
   const [userData, setUserData] = useState<UserData>({ lastCheckIn: 0, streak: 0, xp: 0 });
   const [nftCount, setNftCount] = useState(0);
   const [animatedCount, setAnimatedCount] = useState(0);
+  const [leaderboardData, setLeaderboardData] = useState<{ address: string, score: number }[]>([]);
   const [loading, setLoading] = useState(false);
   const [checkInMsg, setCheckInMsg] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
@@ -96,6 +97,25 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
 
   const totalScore = calculateTotalScore(userData, nftCount, animatedCount);
 
+  // Lazy update: Whenever totalScore changes (and is valid), update the global leaderboard
+  useEffect(() => {
+    if (wallet.connected && wallet.address && totalScore > 0) {
+      updateLeaderboard(wallet.address, totalScore).catch(console.error);
+    }
+  }, [totalScore, wallet.connected, wallet.address]);
+
+  // Fetch Leaderboard Data
+  useEffect(() => {
+    const fetchLB = async () => {
+      const data = await getLeaderboard(50);
+      setLeaderboardData(data);
+    };
+    fetchLB();
+    // Refresh every 30s
+    const interval = setInterval(fetchLB, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Helper for rank icon
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -175,26 +195,33 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
             <span>Score</span>
           </div>
 
-          {wallet.connected ? (
-            <div className="flex items-center justify-between bg-neon/5 p-3 rounded-lg border border-neon/30">
-              <div className="flex items-center gap-3">
-                <div className="w-8 flex justify-center">
-                  {getRankIcon(1)}
-                </div>
-                <div className="text-left">
-                  <p className="text-sm text-white font-mono">
-                    {wallet.address ? `${wallet.address.substring(0, 6)}...${wallet.address.substring(38)}` : ''}
-                  </p>
-                </div>
-              </div>
-              <span className="text-sm font-mono text-neon font-bold">{totalScore} Pts</span>
+          {leaderboardData.length > 0 ? (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto w-full px-2 custom-scrollbar">
+              {leaderboardData.map((entry, index) => {
+                const isCurrentUser = wallet.address?.toLowerCase() === entry.address.toLowerCase();
+                const rank = index + 1;
+
+                return (
+                  <div key={entry.address} className={`flex items-center justify-between p-3 rounded-lg border ${isCurrentUser ? 'bg-neon/10 border-neon/50' : 'bg-[#1a1a1a] border-gray-800'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 flex justify-center font-bold text-gray-300">
+                        {getRankIcon(rank)}
+                      </div>
+                      <div className="text-left">
+                        <p className={`text-sm font-mono ${isCurrentUser ? 'text-white font-bold' : 'text-gray-300'}`}>
+                          {entry.address.substring(0, 6)}...{entry.address.substring(38)}
+                          {isCurrentUser && <span className="ml-2 text-[10px] bg-neon text-black px-1 rounded">YOU</span>}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-sm font-mono font-bold ${isCurrentUser ? 'text-neon' : 'text-gray-400'}`}>{entry.score} Pts</span>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div className="py-12 text-center">
-              <p className="text-gray-500 text-sm mb-4">Connect your wallet to see your rank</p>
-              <button onClick={onConnect} className="bg-neon text-black px-6 py-2 rounded-lg font-bold hover:bg-white transition-colors">
-                Connect Wallet
-              </button>
+            <div className="py-8 text-center text-gray-500">
+              <p>Loading leaderboard...</p>
             </div>
           )}
         </div>

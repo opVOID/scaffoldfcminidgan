@@ -147,6 +147,32 @@ export const saveSettings = async (address: string, settings: UserSettings): Pro
 };
 
 
+export const updateLeaderboard = async (address: string, score: number) => {
+  if (!address) return;
+  // Use ZADD to update the score in the sorted set "leaderboard"
+  // Score is arguably volatile so we update it whenever we calculate it
+  await kvRequest("ZADD", ["leaderboard", score, address]);
+};
+
+export const getLeaderboard = async (limit: number = 50): Promise<{ address: string, score: number }[]> => {
+  // Use ZREVRANGE to get top scores (highest first)
+  // args: key, start, stop, WITHSCORES
+  const result = await kvRequest("ZREVRANGE", ["leaderboard", 0, limit - 1, "WITHSCORES"]);
+
+  if (!result || !Array.isArray(result)) return [];
+
+  // Result comes back as [address, score, address, score...]
+  const leaderBoard: { address: string, score: number }[] = [];
+  for (let i = 0; i < result.length; i += 2) {
+    leaderBoard.push({
+      address: result[i],
+      score: parseInt(result[i + 1])
+    });
+  }
+  return leaderBoard;
+};
+
+
 
 export const calculateTotalScore = (userData: UserData, nftCount: number, animatedCount: number) => {
   return userData.xp + (nftCount * 1) + (animatedCount * 4);
