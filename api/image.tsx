@@ -72,47 +72,25 @@ export default async function handler(request: Request) {
             );
         }
 
-        // 4. Optimize & Serve
-        // Use ImageResponse to resize/format the raw buffer
-        // standardizing it to 1080x1080 WebP/PNG
-        return new ImageResponse(
-            (
-                <div
-                    style={{
-                        display: 'flex',
-                        height: '100%',
-                        width: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#17182b',
-                    }}
-                >
-                    <img
-                        src={imageBuffer as any}
-                        style={{
-                            height: '100%',
-                            width: '100%',
-                            objectFit: 'cover',
-                        }}
-                    />
-                </div>
-            ),
-            {
-                width: 1080,
-                height: 1080,
-                headers: {
-                    'Cache-Control': 'public, max-age=31536000, immutable',
-                },
+        // 4. Serve Raw WebP (Preserve Animation)
+        // We do NOT use ImageResponse here because it converts to static PNG.
+        return new Response(imageBuffer, {
+            status: 200,
+            headers: {
+                'Content-Type': 'image/webp',
+                'Cache-Control': 'public, max-age=31536000, immutable',
+                'Access-Control-Allow-Origin': '*',
             },
-        );
+        });
 
     } catch (e: any) {
         console.error('Image proxy error:', e);
-        // Fallback Error Image
+        // Fallback Error Image via ImageResponse
         return new ImageResponse(
             (
-                <div style={{ background: 'red', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 60 }}>
-                    Error Loading Image
+                <div style={{ background: '#17182b', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <div style={{ fontSize: 40, marginBottom: 20 }}>Bastard DeGAN Phunks</div>
+                    <div style={{ fontSize: 20, color: '#ff4d4d' }}>Image Unavailable</div>
                 </div>
             ),
             { width: 1080, height: 1080 }
