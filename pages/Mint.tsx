@@ -559,7 +559,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       const nftImageUrl = nft.image;
 
       // Construct the dynamic frame URL
-      const appUrl = `${APP_URL}/api/frame?nft=${encodeURIComponent(nftImageUrl)}&name=${encodeURIComponent(nft.name)}&balance=1000`; // Mock balance for test
+      const appUrl = `${APP_URL}/api/og?nft=${encodeURIComponent(nftImageUrl)}&name=${encodeURIComponent(nft.name)}&balance=1000`; // Mock balance for test
 
       const text = `I just minted ${nft.name} ⚡️
 Mint yours and enter today’s jackpot 👇`;
@@ -660,14 +660,14 @@ Mint yours and enter today’s jackpot 👇`;
       // Use the image directly from metadata
       imageUrl = mintedNFT.image;
 
-      // Construct the dynamic frame URL
-      // This URL points to our serverless function which generates the correct meta tags
-      appUrl = `${APP_URL}/api/frame?nft=${encodeURIComponent(imageUrl)}&name=${encodeURIComponent(mintedNFT.name)}&balance=${encodeURIComponent(formattedBalance)}`;
-    }
+      // Replace ipfs.io with dweb.link for reliable social card previews
+      // dweb.link handles redirects correctly and is often faster for embeds
+      const sharableImageUrl = imageUrl.replace('https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/');
 
-    // Replace ipfs.io with dweb.link for reliable social card previews
-    // dweb.link handles redirects correctly and is often faster for embeds
-    const sharableImageUrl = imageUrl.replace('https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/');
+      // 3. Construct the App URL (which serves the Frame)
+      // We point to our serverless function /api/og which generates the dynamic metadata
+      appUrl = `${APP_URL}/api/og?nft=${encodeURIComponent(sharableImageUrl)}&name=${encodeURIComponent(mintedNFT.name || 'Phunk')}&balance=${encodeURIComponent(formattedBalance)}`;
+    }
 
     // 4. Share using Farcaster SDK (Preferred) or Fallback
     try {
