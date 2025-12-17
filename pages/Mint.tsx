@@ -782,7 +782,7 @@ Current jackpot pool: ${formattedBalance}! 💰`;
             : 'bg-[#1F2937] text-gray-200 hover:bg-neon hover:text-black shadow-[0_4px_0_#000] active:shadow-none active:translate-y-[4px]'
             }`}
         >
-          {minting ? 'MINTING...' : wallet.connected ? `MINT ${quantity} (${(stats.price * quantity).toFixed(3)} ETH)` : 'CONNECT WALLET'}
+          {minting ? 'MINTING...' : wallet.connected ? `MINT ${quantity} (${(stats.price * quantity).toFixed(4)} ETH)` : 'CONNECT WALLET'}
         </button>
 
         {/* Admin Panel */}
