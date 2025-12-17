@@ -807,10 +807,10 @@ Current jackpot pool: ${formattedBalance}! 💰`;
                 </button>
               </div>
               <button
-                onClick={() => handleTestMintAndShare(10)}
+                onClick={() => handleTestMintAndShare(11)}
                 className="w-full bg-green-600/20 text-green-400 border border-green-600/50 py-2 rounded-lg text-xs font-bold hover:bg-green-600/30 transition-colors"
               >
-                Test Token #10 (Mint & Share)
+                Test Token #11 (Mint & Share)
               </button>
             </div>
           </div>
