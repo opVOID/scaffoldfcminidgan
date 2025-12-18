@@ -557,19 +557,48 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
 
       showMessage('🎉 Test mint successful!', 'success');
 
-      // 4. Build Warpcast share
-      // Use the clean /share/:id route
+      // 4. Fetch current jackpot pool balance
+      let jackpotBalance = 0;
+      try {
+        const raffleStats = await getRaffleStats();
+        jackpotBalance = raffleStats.potSizeUSD;
+
+        if (jackpotBalance === 1000) {
+          const response = await fetch('https://api.megapot.io/api/v1/jackpot-round-stats/active', {
+            headers: {
+              'Accept': 'application/json',
+              'apikey': import.meta.env.VITE_MEGAPOT_API_KEY || 'default-key'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const realBalance = parseFloat(data.prizeUsd) || 0;
+            if (realBalance > 1000) {
+              jackpotBalance = realBalance;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch jackpot balance for test:', error);
+        jackpotBalance = 825406; // Fallback
+      }
+
+      const formattedBalance = jackpotBalance >= 1000
+        ? `$${(jackpotBalance / 1000).toFixed(1)}K`
+        : `$${jackpotBalance.toFixed(0)}`;
+
+      // 5. Build Warpcast share
       const appUrl = `https://farcaster.xyz/miniapps/q1yrS0zNbEvX/degan-phunks`;
 
-      const text = `I just minted ${nft.name} ⚡️
-Mint yours and enter today’s jackpot 👇`;
+      const text = `I just minted ${nft.name}! 🎉
 
-      const warpcastUrl =
-        `https://warpcast.com/~/compose` +
-        `?text=${encodeURIComponent(text)}` +
-        `&embeds[]=${encodeURIComponent(appUrl)}`;
+Mint yours now and claim a Free Megapot Jackpot Raffle Ticket every Day! 🎁
+Current jackpot pool: ${formattedBalance}! 💰`;
+
+      const imageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${nft.id}`;
+
       try {
-        const imageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${nft.id}`;
         // @ts-ignore
         if (window.farcaster?.frame?.sdk?.actions?.composeCast) {
           // @ts-ignore
@@ -587,7 +616,6 @@ Mint yours and enter today’s jackpot 👇`;
         }
       } catch (err) {
         console.error("Error launching composeCast:", err);
-        const imageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${nft.id}`;
         const warpcastUrl =
           `https://warpcast.com/~/compose` +
           `?text=${encodeURIComponent(text)}` +
@@ -647,48 +675,31 @@ Mint yours and enter today’s jackpot 👇`;
 
     // 3. Prepare Share Data
     let text = '';
-    let imageUrl = '';
-    let appUrl = APP_URL; // Base App URL
+    let shareImageUrl = ''; // This will be our OpenSea URL
+    const appUrl = `https://farcaster.xyz/miniapps/q1yrS0zNbEvX/degan-phunks`;
 
     if (mintedNFTs.length > 1) {
-      // --- BULK MINT ---
       // --- BULK MINT ---
       text = `I just minted ${mintedNFTs.length} Bastard DeGAN Phunks! 🎉
 
 Mint yours now and claim a Free Megapot Jackpot Raffle Ticket every Day! 🎁
 Current jackpot pool: ${formattedBalance}! 💰`;
 
-      // Use the first NFT as the representative image
-      const firstNFT = mintedNFTs[0];
-      // Use the image directly from metadata
-      imageUrl = firstNFT.image;
-
+      // Use contract-based item path as a collection link for multiple mints
+      shareImageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/`;
     } else {
-      // --- SINGLE MINT ---
       // --- SINGLE MINT ---
       text = `I just minted ${mintedNFT.name}! 🎉
 
 Mint yours now and claim a Free Megapot Jackpot Raffle Ticket every Day! 🎁
 Current jackpot pool: ${formattedBalance}! 💰`;
 
-      // Use the image directly from metadata
-      imageUrl = mintedNFT.image;
-
-      // Replace ipfs.io with dweb.link for reliable social card previews
-      // dweb.link handles redirects correctly and is often faster for embeds
-      const sharableImageUrl = imageUrl.replace('https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/');
-
-      // 3. Construct the Clean Share URL
-      // This points to /share/:id which Vercel rewrites to /api/share?id=:id
-      // The backend fetches metadata automatically, so we just need the ID.
-      // If we don't have an ID (bulk mint fallback), we default to 1 or generic.
-      const shareId = mintedNFT.id || '1';
-      const appUrl = `https://farcaster.xyz/miniapps/q1yrS0zNbEvX/degan-phunks`;
+      // Use specific item URL for single mint
+      shareImageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${mintedNFT.id}`;
     }
 
     // 4. Share using Farcaster SDK (Preferred) or Fallback
     try {
-      const shareImageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${mintedNFT.id || '1'}`;
       // @ts-ignore - SDK might be loaded globally via script tag
       if (window.farcaster?.frame?.sdk?.actions?.composeCast) {
         // @ts-ignore
@@ -708,7 +719,6 @@ Current jackpot pool: ${formattedBalance}! 💰`;
       }
     } catch (err) {
       console.error("Error launching composeCast:", err);
-      const shareImageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${mintedNFT.id || '1'}`;
       // Fallback if SDK call fails
       const warpcastUrl =
         `https://warpcast.com/~/compose` +
