@@ -4,9 +4,10 @@ export default async function handler(req, res) {
         const shareId = id || '1';
 
         // 1. Construct URLs
-        const appUrl = 'https://fcphunksmini.vercel.app';
+        const appUrl = 'https://farcaster.xyz/miniapps/q1yrS0zNbEvX/degan-phunks';
         // USE PROXY FOR FRAME IMAGE (Must be direct image link or it shows as black box)
-        const frameImageUrl = `${appUrl}/api/image?id=${shareId}`;
+        // Note: The proxy must live on the Vercel domain
+        const frameImageUrl = `https://fcphunksmini.vercel.app/api/image?id=${shareId}`;
         // USE OPENSEA FOR PAGE LINK
         const openseaUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${shareId}`;
 
