@@ -4,7 +4,7 @@ export default async function handler(req, res) {
         const shareId = id || '1';
 
         // 1. Construct Image URL using OpenSea direct link (Verified by user for perfect embeds)
-        const imageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${shareId}.webp`;
+        const imageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${shareId}`;
         const appUrl = 'https://fcphunksmini.vercel.app';
         let nftName = `Bastard DeGAN Phunk #${shareId}`;
 
