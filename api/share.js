@@ -3,23 +3,27 @@ export default async function handler(req, res) {
         const { id } = req.query;
         const shareId = id || '1';
 
-        // 1. Construct Image URL using OpenSea direct link (Verified by user for perfect embeds)
-        const imageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${shareId}`;
+        // 1. Construct URLs
         const appUrl = 'https://fcphunksmini.vercel.app';
-        let nftName = `Bastard DeGAN Phunk #${shareId}`;
+        // USE PROXY FOR FRAME IMAGE (Must be direct image link or it shows as black box)
+        const frameImageUrl = `${appUrl}/api/image?id=${shareId}`;
+        // USE OPENSEA FOR PAGE LINK
+        const openseaUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${shareId}`;
 
-        // 2. Mini App Data
+        const nftName = `Bastard DeGAN Phunk #${shareId}`;
+
+        // 2. Mini App Data (Frame V2)
         const miniappContent = JSON.stringify({
             version: "next",
             title: nftName,
-            imageUrl: imageUrl,
+            imageUrl: frameImageUrl, // Fixed: Using proxy for frame display
             button: {
                 title: "Mint Your Phunk",
                 action: {
                     type: "launch_frame",
                     name: "Bastard DeGAN Phunks",
                     url: appUrl,
-                    splashImageUrl: imageUrl,
+                    splashImageUrl: frameImageUrl,
                     splashBackgroundColor: "#17182b"
                 }
             }
@@ -42,23 +46,23 @@ export default async function handler(req, res) {
             <meta property="og:description" content="Minted on FCPhunks Mini. Verify this Phunk on Base." />
             
             <!-- Robust Image Tags -->
-            <meta property="og:image" content="${imageUrl}" />
+            <meta property="og:image" content="${frameImageUrl}" />
             <meta property="og:image:type" content="image/webp" />
             <meta property="og:image:width" content="1080" />
             <meta property="og:image:height" content="1080" />
             
-            <meta property="og:url" content="${appUrl}/share/${shareId}" />
+            <meta property="og:url" content="${openseaUrl}" />
             <meta name="twitter:card" content="summary_large_image" />
     
             <!-- Farcaster Frame V2 -->
             <meta name="fc:frame" content='${safeMiniappContent}' />
             
             <!-- Farcaster Frame V1 Fallback -->
-            <meta property="fc:frame:image" content="${imageUrl}" />
+            <meta property="fc:frame:image" content="${frameImageUrl}" />
             <meta property="fc:frame:image:aspect_ratio" content="1:1" />
             <meta property="fc:frame:button:1" content="Mint Your Phunk" />
             <meta property="fc:frame:button:1:action" content="link" />
-            <meta property="fc:frame:button:1:target" content="${appUrl}?id=${shareId}" />
+            <meta property="fc:frame:button:1:target" content="${openseaUrl}" />
 
             <style>
                 body {
