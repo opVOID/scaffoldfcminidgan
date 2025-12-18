@@ -1,11 +1,11 @@
 {
     "frame": {
-        "name": "Bastard DeGAN Phunks",
+        "name": "DeGAN Phunks",
         "version": "1",
         "iconUrl": "https://fcphunksmini.vercel.app/example.webp",
         "homeUrl": "https://fcphunksmini.vercel.app",
         "imageUrl": "https://fcphunksmini.vercel.app/example.webp",
-        "buttonTitle": "Mint Bastard DeGAN Phunks",
+        "buttonTitle": "Mint DeGAN Phunks",
         "splashImageUrl": "https://fcphunksmini.vercel.app/example.webp",
         "splashBackgroundColor": "#17182b",
         "webhookUrl": "https://api.neynar.com/f/app/d2aadd49-b11b-4f86-9792-6f2a55e71f6b/event",
@@ -22,7 +22,7 @@
         ],
         "castShareUrl": "https://fcphunksmini.vercel.app/share",
         "ogDescription": "Mint Phunks. Earn Rewards",
-        "ogTitle": "Bastard DeGAN Phunks",
+        "ogTitle": "DeGAN Phunks",
         "tagline": "Mint. Rank. Earn Rewards"
     },
     "accountAssociation": {
