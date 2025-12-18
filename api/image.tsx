@@ -17,56 +17,70 @@ export default async function handler(request: Request) {
         const tokenId = parseInt(id);
         const IMAGES_CID = "bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey";
 
-        // 1. Array of Gateways - Use folder-aware URL first
-        const gateways = [
-            getPhunkImageURL(tokenId), // Use our helper for phunksfirst/phunkssecond
-            // Fallbacks
-            `https://dweb.link/ipfs/${IMAGES_CID}/${id}.webp`,
+        // 1. Array of Gateways - Priority Order
+        const primaryHost = getPhunkImageURL(tokenId);
+        const fastGateways = [
             `https://cloudflare-ipfs.com/ipfs/${IMAGES_CID}/${id}.webp`,
-            `https://ipfs.io/ipfs/${IMAGES_CID}/${id}.webp`,
+            `https://dweb.link/ipfs/${IMAGES_CID}/${id}.webp`,
         ];
 
-        // 2. Fetch with Fast Failover
         let imageBuffer: ArrayBuffer | null = null;
 
-        // A. Try FTP First
-        for (const gateway of gateways) {
-            try {
-                const response = await fetch(gateway, {
-                    signal: AbortSignal.timeout(8000), // Increased to 8s
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                    }
-                });
-
-                if (response.ok) {
-                    imageBuffer = await response.arrayBuffer();
-                    console.log(`Fetched image from ${gateway}`);
-                    break;
+        // A. Try Primary Host (FTP) with a very short timeout (fast failover)
+        try {
+            const primaryRes = await fetch(primaryHost, {
+                signal: AbortSignal.timeout(1500), // 1.5s max for primary
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
-            } catch (err) {
-                console.error(`Failed ${gateway}`, err);
-                continue;
+            });
+            if (primaryRes.ok) {
+                const contentType = primaryRes.headers.get('content-type');
+                if (contentType && !contentType.includes('text/html')) {
+                    imageBuffer = await primaryRes.arrayBuffer();
+                    console.log(`Fetched from Primary: ${primaryHost}`);
+                }
             }
+        } catch (e) {
+            console.log("Primary host failed/timed out, trying fast fallbacks...");
         }
 
-        // B. Try Bastard GAN Punks API (Arweave) if FTP failed
+        // B. If primary failed, Race Arweave and Cloudflare
         if (!imageBuffer) {
             try {
-                // Fetch metadata to get Arweave URL
-                const metaRes = await fetch(`https://api.bastardganpunks.club/${id}`, { signal: AbortSignal.timeout(3000) });
-                if (metaRes.ok) {
+                // Racing several fast sources
+                const fetchSource = async (url: string) => {
+                    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+                    if (!res.ok) throw new Error(`Source ${url} failed`);
+                    const ct = res.headers.get('content-type');
+                    if (ct && ct.includes('text/html')) throw new Error(`Source ${url} returned HTML`);
+                    return { buffer: await res.arrayBuffer(), url };
+                };
+
+                // Add Arweave to the race by fetching metadata first
+                const getArweaveUrl = async () => {
+                    const metaRes = await fetch(`https://api.bastardganpunks.club/${id}`, { signal: AbortSignal.timeout(2000) });
                     const meta = await metaRes.json();
-                    if (meta.imageArweave) {
-                        const arRes = await fetch(meta.imageArweave, { signal: AbortSignal.timeout(8000) });
-                        if (arRes.ok) {
-                            imageBuffer = await arRes.arrayBuffer();
-                            console.log(`Fetched image from Arweave: ${meta.imageArweave}`);
-                        }
-                    }
-                }
+                    if (!meta.imageArweave) throw new Error("No Arweave link");
+                    return meta.imageArweave;
+                };
+
+                const sources = [...fastGateways];
+                try {
+                    const arUrl = await getArweaveUrl();
+                    sources.push(arUrl);
+                } catch (e) { /* ignore arweave meta failure */ }
+
+                const result = await Promise.any(sources.map(s => fetchSource(s)));
+                imageBuffer = result.buffer;
+                console.log(`Fetched from fast source: ${result.url}`);
             } catch (e) {
-                console.error("Arweave Fetch Failed", e);
+                console.error("All fast sources failed, trying slow fallback...");
+                // Final slow fallback
+                try {
+                    const slowRes = await fetch(`https://ipfs.io/ipfs/${IMAGES_CID}/${id}.webp`, { signal: AbortSignal.timeout(8000) });
+                    if (slowRes.ok) imageBuffer = await slowRes.arrayBuffer();
+                } catch (e2) { }
             }
         }
 

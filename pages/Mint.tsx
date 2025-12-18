@@ -569,7 +569,7 @@ Mint yours and enter today’s jackpot 👇`;
         `?text=${encodeURIComponent(text)}` +
         `&embeds[]=${encodeURIComponent(appUrl)}`;
       try {
-        const imageUrl = `https://fcphunksmini.vercel.app/api/image?id=${nft.id}`;
+        const imageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${nft.id}.webp`;
         // @ts-ignore
         if (window.farcaster?.frame?.sdk?.actions?.composeCast) {
           // @ts-ignore
@@ -587,7 +587,7 @@ Mint yours and enter today’s jackpot 👇`;
         }
       } catch (err) {
         console.error("Error launching composeCast:", err);
-        const imageUrl = `https://fcphunksmini.vercel.app/api/image?id=${nft.id}`;
+        const imageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${nft.id}.webp`;
         const warpcastUrl =
           `https://warpcast.com/~/compose` +
           `?text=${encodeURIComponent(text)}` +
@@ -688,7 +688,7 @@ Current jackpot pool: ${formattedBalance}! 💰`;
 
     // 4. Share using Farcaster SDK (Preferred) or Fallback
     try {
-      const shareImageUrl = `https://fcphunksmini.vercel.app/api/image?id=${mintedNFT.id || '1'}`;
+      const shareImageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${mintedNFT.id || '1'}.webp`;
       // @ts-ignore - SDK might be loaded globally via script tag
       if (window.farcaster?.frame?.sdk?.actions?.composeCast) {
         // @ts-ignore
@@ -708,7 +708,7 @@ Current jackpot pool: ${formattedBalance}! 💰`;
       }
     } catch (err) {
       console.error("Error launching composeCast:", err);
-      const shareImageUrl = `https://fcphunksmini.vercel.app/api/image?id=${mintedNFT.id || '1'}`;
+      const shareImageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${mintedNFT.id || '1'}.webp`;
       // Fallback if SDK call fails
       const warpcastUrl =
         `https://warpcast.com/~/compose` +

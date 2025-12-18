@@ -3,19 +3,20 @@ export default async function handler(req, res) {
         const { id } = req.query;
         const shareId = id || '1';
 
-        // 1. Construct Image URL (Using the efficient proxy)
-        const imageUrl = `https://fcphunksmini.vercel.app/api/image?id=${shareId}`;
+        // 1. Construct Image URL using OpenSea direct link (Verified by user for perfect embeds)
+        const imageUrl = `https://opensea.io/item/base/0xb7116be05bf2662a0f60a160f29b9cb69ade67be/${shareId}.webp`;
         const appUrl = 'https://fcphunksmini.vercel.app';
         let nftName = `Bastard DeGAN Phunk #${shareId}`;
 
         // 2. Mini App Data
         const miniappContent = JSON.stringify({
-            version: "1",
+            version: "next",
+            title: nftName,
             imageUrl: imageUrl,
             button: {
                 title: "Mint Your Phunk",
                 action: {
-                    type: "launch_miniapp",
+                    type: "launch_frame",
                     name: "Bastard DeGAN Phunks",
                     url: appUrl,
                     splashImageUrl: imageUrl,
@@ -49,14 +50,15 @@ export default async function handler(req, res) {
             <meta property="og:url" content="${appUrl}/share/${shareId}" />
             <meta name="twitter:card" content="summary_large_image" />
     
-            <!-- Farcaster Frame Tags -->
-            <meta property="fc:frame" content="vNext" />
+            <!-- Farcaster Frame V2 -->
+            <meta name="fc:frame" content='${safeMiniappContent}' />
+            
+            <!-- Farcaster Frame V1 Fallback -->
             <meta property="fc:frame:image" content="${imageUrl}" />
             <meta property="fc:frame:image:aspect_ratio" content="1:1" />
             <meta property="fc:frame:button:1" content="Mint Your Phunk" />
             <meta property="fc:frame:button:1:action" content="link" />
             <meta property="fc:frame:button:1:target" content="${appUrl}?id=${shareId}" />
-            <meta name="fc:miniapp" content='${safeMiniappContent}' />
 
             <style>
                 body {
