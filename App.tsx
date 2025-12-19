@@ -11,20 +11,13 @@ import Raffle from './pages/Raffle';
 import Card from './pages/Card';
 import { AuthKitProvider } from '@farcaster/auth-kit';
 import { AuthProvider } from './contexts/AuthContext';
-
-// Initialize Farcaster SDK directly
-declare global {
-  interface Window {
-    sdk?: any;
-  }
-}
-
 import { useMiniApp } from '@neynar/react';
 
 function App() {
   const { isSDKLoaded, actions, added } = useMiniApp();
   const { wallet, connect, disconnect, getAuthToken } = useWallet({ isLoaded: isSDKLoaded, actions });
   const [activePage, setActivePage] = useState<PageType>('mint');
+  const [sdkReady, setSdkReady] = useState(false);
   const hasAttemptedToAdd = React.useRef(false);
 
   const authKitConfig = {
@@ -37,37 +30,72 @@ function App() {
   };
 
   const handleAddMiniApp = async () => {
-    if (!isSDKLoaded || !actions?.addMiniApp) return;
+    if (!isSDKLoaded || !actions?.addMiniApp) {
+      console.log("Cannot add mini app - SDK not ready");
+      return;
+    }
+    
     try {
+      console.log("Adding mini app...");
       const result = await actions.addMiniApp();
-      if (result.notificationDetails) {
+      if (result?.notificationDetails) {
         console.log('Notification token:', result.notificationDetails.token);
       }
+      console.log("Mini app added successfully");
     } catch (error: any) {
-      // Check for the specific error "Cannot read properties of undefined (reading 'result')"
-      // which happens when the Farcaster client returns an empty response (common in some environments)
+      // Handle the empty response error from Farcaster client
       if (error instanceof TypeError && error.message.includes("reading 'result'")) {
-        console.warn('Mini App addition failed: The Farcaster client returned an empty response. This may happen if you are not in a fully supported Farcaster client environment.');
+        console.warn('Mini App addition: Farcaster client returned empty response (may be normal in some environments)');
       } else {
         console.error('Failed to add mini app:', error);
       }
     }
   };
 
-  // Initialize Farcaster SDK when app loads
+  // Initialize Farcaster SDK
   useEffect(() => {
-    if (isSDKLoaded && actions?.ready) {
-      console.log('Calling sdk.actions.ready() via Neynar hook...');
-      actions.ready();
+    console.log("SDK State changed:", { isSDKLoaded, hasActions: !!actions, added });
 
-      // Auto-prompt to add mini app if not already added
-      if (!added && !hasAttemptedToAdd.current) {
-        console.log('App not added, prompting user...');
-        hasAttemptedToAdd.current = true;
-        handleAddMiniApp();
-      }
+    if (!isSDKLoaded) {
+      console.log("SDK not yet loaded, waiting...");
+      return;
     }
-  }, [isSDKLoaded, actions, added]);
+
+    if (!actions) {
+      console.log("Actions not available yet");
+      return;
+    }
+
+    // Call ready() when SDK is loaded
+    if (!sdkReady && actions.ready) {
+      console.log('Calling SDK ready()...');
+      actions.ready()
+        .then(() => {
+          console.log('SDK ready() completed');
+          setSdkReady(true);
+        })
+        .catch((err: any) => {
+          console.error('SDK ready() failed:', err);
+          // Still mark as ready to prevent blocking
+          setSdkReady(true);
+        });
+    }
+
+    // Auto-prompt to add mini app if not already added
+    if (sdkReady && !added && !hasAttemptedToAdd.current) {
+      console.log('App not added, prompting user...');
+      hasAttemptedToAdd.current = true;
+      // Small delay to ensure everything is ready
+      setTimeout(() => {
+        handleAddMiniApp();
+      }, 1000);
+    }
+  }, [isSDKLoaded, actions, added, sdkReady]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Wallet state:", wallet);
+  }, [wallet]);
 
   const renderPage = () => {
     switch (activePage) {
@@ -82,7 +110,7 @@ function App() {
       case 'raffle':
         return <Raffle />;
       default:
-        return <Mint wallet={wallet} onConnect={connect} />;
+        return <Mint wallet={wallet} onConnect={connect} getAuthToken={getAuthToken} />;
     }
   };
 
@@ -90,6 +118,16 @@ function App() {
     <AuthKitProvider config={authKitConfig}>
       <AuthProvider>
         <div className="min-h-screen bg-[#050505] text-white selection:bg-neon selection:text-black">
+          {/* Show loading state while SDK initializes */}
+          {!isSDKLoaded && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon mx-auto mb-4"></div>
+                <p className="text-gray-400">Initializing Farcaster SDK...</p>
+              </div>
+            </div>
+          )}
+
           <Header wallet={wallet} onConnect={connect} onDisconnect={disconnect} />
 
           {renderPage()}

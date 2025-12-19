@@ -6,9 +6,7 @@ declare global {
   interface Window {
     ethereum?: any;
     farcaster?: any;
-    // Farcaster SDK
     sdk?: any;
-    // Support for various wallet providers
     walletlink?: any;
     bitkeep?: any;
   }
@@ -23,35 +21,68 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
   });
 
   const getWalletProvider = () => {
-    // Try Farcaster v2 SDK provider
-    // Check various common global names for the SDK
-    const fc = window.farcaster || window.sdk || (window as any).frameSDK || sdkState?.actions;
+    console.log("getWalletProvider called", {
+      isSDKLoaded: sdkState?.isLoaded,
+      hasActions: !!sdkState?.actions,
+      hasEthereum: !!window.ethereum
+    });
 
-    if (fc) {
-      console.log("Farcaster SDK detected:", fc);
-      if (fc.wallet?.ethereumProvider) {
-        console.log("Using fc.wallet.ethereumProvider");
-        return fc.wallet.ethereumProvider;
+    // Priority 1: Neynar SDK ethereum provider
+    if (sdkState?.isLoaded && sdkState?.actions) {
+      console.log("Checking Neynar SDK actions...");
+      
+      // The Neynar SDK provides ethereum provider through the context
+      // Check if we can get it through the SDK
+      if (sdkState.actions.context?.client?.wallet) {
+        console.log("Found wallet in context.client.wallet");
+        return sdkState.actions.context.client.wallet;
       }
-      if (fc.ethereumProvider) {
-        console.log("Using fc.ethereumProvider");
-        return fc.ethereumProvider;
-      }
-      if (typeof fc.request === 'function') {
-        console.log("Using fc object as provider");
-        return fc;
+      
+      // Try direct ethereum provider
+      if (sdkState.actions.ethereum) {
+        console.log("Found ethereum provider in actions");
+        return sdkState.actions.ethereum;
       }
     }
 
-    // Standard EIP-1193 providers
+    // Priority 2: Check global SDK instances
+    const globalSDK = window.sdk || window.farcaster || (window as any).frameSDK;
+    if (globalSDK) {
+      console.log("Found global SDK:", globalSDK);
+      
+      if (globalSDK.wallet?.ethereumProvider) {
+        console.log("Using globalSDK.wallet.ethereumProvider");
+        return globalSDK.wallet.ethereumProvider;
+      }
+      
+      if (globalSDK.ethereumProvider) {
+        console.log("Using globalSDK.ethereumProvider");
+        return globalSDK.ethereumProvider;
+      }
+      
+      if (typeof globalSDK.request === 'function') {
+        console.log("Using globalSDK as provider");
+        return globalSDK;
+      }
+    }
+
+    // Priority 3: Standard EIP-1193 providers (for desktop browser fallback)
     if (window.ethereum) {
-      // If we are in Farcaster, window.ethereum might be the right one too
+      console.log("Using window.ethereum");
       return window.ethereum;
     }
 
-    if (window.walletlink) return window.walletlink;
-    if (window.bitkeep) return window.bitkeep;
+    if (window.walletlink) {
+      console.log("Using walletlink");
+      return window.walletlink;
+    }
+    
+    if (window.bitkeep) {
+      console.log("Using bitkeep");
+      return window.bitkeep;
+    }
 
+    console.warn("No provider found");
     return null;
   };
 
@@ -60,10 +91,21 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
     if (provider?.isCoinbaseWallet) return 'Coinbase Wallet';
     if (provider?.isWalletConnect) return 'WalletConnect';
 
-    const fc = window.farcaster || window.sdk || (window as any).frameSDK || sdkState?.actions;
-    if (fc?.wallet?.ethereumProvider === provider ||
-      fc?.ethereumProvider === provider ||
-      fc === provider) return 'Farcaster';
+    // Check if it's from Neynar/Farcaster SDK
+    if (sdkState?.isLoaded) {
+      const sdkProvider = sdkState.actions?.context?.client?.wallet || 
+                         sdkState.actions?.ethereum;
+      if (sdkProvider === provider) {
+        return 'Farcaster';
+      }
+    }
+
+    const globalSDK = window.sdk || window.farcaster || (window as any).frameSDK;
+    if (globalSDK?.wallet?.ethereumProvider === provider ||
+        globalSDK?.ethereumProvider === provider ||
+        globalSDK === provider) {
+      return 'Farcaster';
+    }
 
     if (window.walletlink === provider) return 'WalletLink';
     if (window.bitkeep === provider) return 'BitKeep';
@@ -82,9 +124,8 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
             params: [{ chainId: `0x${BASE_CHAIN_ID.toString(16)}` }],
           });
         } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to the wallet.
           if (switchError.code === 4902) {
-            console.log("Adding network to wallet...");
+            console.log("Network needs to be added to wallet");
           }
         }
       }
@@ -94,27 +135,51 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
   }, []);
 
   const connect = useCallback(async () => {
+    console.log("Connect called, SDK state:", {
+      isLoaded: sdkState?.isLoaded,
+      hasActions: !!sdkState?.actions
+    });
+
     const provider = getWalletProvider();
 
     if (!provider) {
-      const diagnostics = `FC: ${!!(window.farcaster || window.sdk || (window as any).frameSDK)}, NeynarLoaded: ${!!sdkState?.isLoaded}, ETH: ${!!window.ethereum}`;
-      console.warn("No Web3 provider found", diagnostics);
-      alert(`Wallet not detected. ${diagnostics}\nPlease use a desktop browser with MetaMask or open this within Farcaster.`);
+      const diagnostics = {
+        sdkLoaded: !!sdkState?.isLoaded,
+        hasActions: !!sdkState?.actions,
+        hasGlobalSDK: !!(window.sdk || window.farcaster || (window as any).frameSDK),
+        hasEthereum: !!window.ethereum,
+      };
+      
+      console.error("No Web3 provider found", diagnostics);
+      
+      alert(
+        `Wallet not detected.\n\n` +
+        `SDK Loaded: ${diagnostics.sdkLoaded}\n` +
+        `Has Actions: ${diagnostics.hasActions}\n` +
+        `Global SDK: ${diagnostics.hasGlobalSDK}\n` +
+        `Window Ethereum: ${diagnostics.hasEthereum}\n\n` +
+        `Please use a desktop browser with MetaMask or open this within Farcaster.`
+      );
       return;
     }
 
     const walletName = getWalletName(provider);
-    console.log(`Connecting to ${walletName}...`);
+    console.log(`Attempting to connect to ${walletName}...`);
 
     try {
-      // For Farcaster wallets, ensure ready() is called if available
-      if (walletName === 'Farcaster' && typeof provider.ready === 'function') {
-        await provider.ready();
+      // For Farcaster, make sure SDK is ready
+      if (walletName === 'Farcaster') {
+        if (sdkState?.actions?.ready && !sdkState.actions._readyCalled) {
+          console.log("Calling SDK ready()...");
+          await sdkState.actions.ready();
+        }
       }
 
       const accounts = await provider.request({ method: 'eth_requestAccounts' });
       const chainIdHex = await provider.request({ method: 'eth_chainId' });
       const chainId = parseInt(chainIdHex, 16);
+
+      console.log("Connected:", { accounts, chainId, walletName });
 
       if (accounts && accounts.length > 0) {
         setWallet({
@@ -129,13 +194,16 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
       }
     } catch (error) {
       console.error("Connection error:", error);
-      if (walletName === 'Farcaster') {
-        alert("Failed to connect to Farcaster wallet. Check if you are in the Warpcast app.");
-      }
+      alert(
+        `Failed to connect to ${walletName}.\n\n` +
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n` +
+        `If using Farcaster, ensure you're in the Warpcast app.`
+      );
     }
   }, [checkNetwork, sdkState]);
 
   const disconnect = useCallback(() => {
+    console.log("Disconnecting wallet");
     setWallet({
       address: null,
       chainId: null,
@@ -144,16 +212,20 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
     });
   }, []);
 
+  // Auto-detect and setup provider
   useEffect(() => {
     let checkInterval: any;
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 20; // Increased from 10
 
     const setupProvider = async (provider: any) => {
-      if (!provider || typeof provider.request !== 'function') return false;
+      if (!provider || typeof provider.request !== 'function') {
+        console.log("Provider not valid for setup");
+        return false;
+      }
 
-      // Check if already connected
       try {
+        // Check if already connected
         const accounts = await provider.request({ method: 'eth_accounts' });
         if (accounts && accounts.length > 0) {
           const chainIdHex = await provider.request({ method: 'eth_chainId' });
@@ -176,6 +248,7 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
       // Set up listeners
       if (typeof provider.on === 'function') {
         provider.on('accountsChanged', (accounts: string[]) => {
+          console.log('Accounts changed:', accounts);
           setWallet(prev => ({
             ...prev,
             address: accounts[0] || null,
@@ -185,6 +258,7 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
         });
 
         provider.on('chainChanged', (chainId: string) => {
+          console.log('Chain changed:', chainId);
           setWallet(prev => ({
             ...prev,
             chainId: parseInt(chainId, 16),
@@ -196,32 +270,41 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
     };
 
     const runCheck = async () => {
+      attempts++;
+      console.log(`Provider check attempt ${attempts}/${maxAttempts}`);
+      
       const provider = getWalletProvider();
       if (provider) {
+        console.log("Provider found on attempt", attempts);
         const success = await setupProvider(provider);
         if (success) {
           clearInterval(checkInterval);
         }
       }
 
-      attempts++;
       if (attempts >= maxAttempts) {
+        console.log("Max attempts reached, stopping checks");
         clearInterval(checkInterval);
       }
     };
 
-    // Run immediately and then poll every 500ms for 5s to catch late injection
-    runCheck();
-    checkInterval = setInterval(runCheck, 500);
+    // Wait a bit before starting checks to let SDK initialize
+    const startDelay = setTimeout(() => {
+      runCheck();
+      checkInterval = setInterval(runCheck, 500);
+    }, 100);
 
-    return () => clearInterval(checkInterval);
+    return () => {
+      clearTimeout(startDelay);
+      clearInterval(checkInterval);
+    };
   }, [sdkState?.isLoaded]);
 
   const getAuthToken = useCallback(async () => {
-    const fc = window.farcaster || window.sdk;
-    if (fc?.quickAuth?.getToken) {
+    const globalSDK = window.sdk || window.farcaster;
+    if (globalSDK?.quickAuth?.getToken) {
       try {
-        const token = await fc.quickAuth.getToken();
+        const token = await globalSDK.quickAuth.getToken();
         return token;
       } catch (error) {
         console.error("Failed to get Farcaster auth token:", error);
