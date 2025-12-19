@@ -29,6 +29,11 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
 
     if (fc) {
       console.log("Farcaster SDK detected:", fc);
+      // Try Neynar SDK wallet provider first
+      if (fc.wallet?.provider) {
+        console.log("Using fc.wallet.provider (Neynar SDK)");
+        return fc.wallet.provider;
+      }
       if (fc.wallet?.ethereumProvider) {
         console.log("Using fc.wallet.ethereumProvider");
         return fc.wallet.ethereumProvider;
@@ -36,6 +41,11 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
       if (fc.ethereumProvider) {
         console.log("Using fc.ethereumProvider");
         return fc.ethereumProvider;
+      }
+      // For Neynar SDK, try to get provider from actions
+      if (sdkState?.actions?.getProvider) {
+        console.log("Using sdkState.actions.getProvider");
+        return sdkState.actions.getProvider();
       }
       if (typeof fc.request === 'function') {
         console.log("Using fc object as provider");
@@ -61,9 +71,11 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
     if (provider?.isWalletConnect) return 'WalletConnect';
 
     const fc = window.farcaster || window.sdk || (window as any).frameSDK || sdkState?.actions;
-    if (fc?.wallet?.ethereumProvider === provider ||
+    if (fc?.wallet?.provider === provider ||
+      fc?.wallet?.ethereumProvider === provider ||
       fc?.ethereumProvider === provider ||
-      fc === provider) return 'Farcaster';
+      fc === provider ||
+      sdkState?.actions?.getProvider?.() === provider) return 'Farcaster';
 
     if (window.walletlink === provider) return 'WalletLink';
     if (window.bitkeep === provider) return 'BitKeep';
@@ -97,7 +109,7 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
     const provider = getWalletProvider();
 
     if (!provider) {
-      const diagnostics = `FC: ${!!(window.farcaster || window.sdk || (window as any).frameSDK)}, NeynarLoaded: ${!!sdkState?.isLoaded}, ETH: ${!!window.ethereum}`;
+      const diagnostics = `FC: ${!!(window.farcaster || window.sdk || (window as any).frameSDK)}, NeynarLoaded: ${!!sdkState?.isLoaded}, Actions: ${!!sdkState?.actions}, ETH: ${!!window.ethereum}`;
       console.warn("No Web3 provider found", diagnostics);
       alert(`Wallet not detected. ${diagnostics}\nPlease use a desktop browser with MetaMask or open this within Farcaster.`);
       return;
