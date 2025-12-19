@@ -1,0 +1,20 @@
+
+# Enable CORS
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type"
+</IfModule>
+
+# Satisfy Any to try to bypass auth
+Satisfy Any
+Allow from all
+
+# Disable invalid folder listing
+Options -Indexes
+
+# Try to disable security filters (might be ignored by host)
+<IfModule mod_security.c>
+  SecFilterEngine Off
+  SecFilterScanPOST Off
+</IfModule>

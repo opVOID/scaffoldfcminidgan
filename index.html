@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="/favicon.webp" type="image/webp" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Bastard DeGAN Phunks - Mint on Base" />
+  <title>Bastard DeGAN Phunks</title>
+
+  <!-- Farcaster Mini App (v2) -->
+  <meta name="fc:frame"
+    content='{"version":"next","title":"Bastard DeGAN Phunks","imageUrl":"https://fcphunksmini.vercel.app/example.webp","button":{"title":"Mint Bastard DeGAN Phunks","action":{"type":"launch_frame","name":"Bastard DeGAN Phunks","url":"https://fcphunksmini.vercel.app","splashImageUrl":"https://fcphunksmini.vercel.app/example.webp","splashBackgroundColor":"#17182b"}}}' />
+
+  <!-- OpenGraph Tags for Link Previews -->
+  <meta property="og:title" content="Bastard DeGAN Phunks" />
+  <meta property="og:description" content="Mint Phunks. Earn Rewards." />
+  <meta property="og:image" content="https://fcphunksmini.vercel.app/example.webp" />
+  <meta property="og:url" content="https://fcphunksmini.vercel.app" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Farcaster SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@0.2.5/dist/index.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            neon: '#00FF94',
+            darkbg: '#0a0a0a',
+            cardbg: '#111111',
+            purpleAccent: '#5b21b6'
+          },
+          fontFamily: {
+            mono: ['"Courier New"', 'Courier', 'monospace'],
+          },
+          boxShadow: {
+            'neon': '0 0 20px rgba(0, 255, 148, 0.5), 0 0 40px rgba(0, 255, 148, 0.3), 0 0 60px rgba(0, 255, 148, 0.1)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #050505;
+      color: #ffffff;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Custom scrollbar for webkit */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #111;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00FF94;
+    }
+
+    .pixel-art {
+      image-rendering: pixelated;
+    }
+  </style>
+
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>
