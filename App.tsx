@@ -9,6 +9,8 @@ import Leaderboard from './pages/Leaderboard';
 import Airdrop from './pages/Airdrop';
 import Raffle from './pages/Raffle';
 import Card from './pages/Card';
+import { AuthKitProvider } from '@farcaster/auth-kit';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Initialize Farcaster SDK directly
 declare global {
@@ -24,6 +26,15 @@ function App() {
   const { wallet, connect, disconnect, getAuthToken } = useWallet({ isLoaded: isSDKLoaded, actions });
   const [activePage, setActivePage] = useState<PageType>('mint');
   const hasAttemptedToAdd = React.useRef(false);
+
+  const authKitConfig = {
+    relay: import.meta.env.VITE_FARCASTER_RELAY || 'https://relay.farcaster.xyz',
+    rpcUrl: import.meta.env.VITE_FARCASTER_RPC_URL || 'https://mainnet.optimism.io',
+    domain: import.meta.env.PROD
+      ? (import.meta.env.VITE_FARCASTER_DOMAIN || window.location.host)
+      : window.location.host,
+    siweUri: `${window.location.origin}/login`,
+  };
 
   const handleAddMiniApp = async () => {
     if (!isSDKLoaded || !actions?.addMiniApp) return;
@@ -76,13 +87,17 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-neon selection:text-black">
-      <Header wallet={wallet} onConnect={connect} onDisconnect={disconnect} />
+    <AuthKitProvider config={authKitConfig}>
+      <AuthProvider>
+        <div className="min-h-screen bg-[#050505] text-white selection:bg-neon selection:text-black">
+          <Header wallet={wallet} onConnect={connect} onDisconnect={disconnect} />
 
-      {renderPage()}
+          {renderPage()}
 
-      <NavBar activePage={activePage} setPage={setActivePage} />
-    </div>
+          <NavBar activePage={activePage} setPage={setActivePage} />
+        </div>
+      </AuthProvider>
+    </AuthKitProvider>
   );
 }
 

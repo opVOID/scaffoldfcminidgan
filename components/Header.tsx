@@ -2,6 +2,8 @@ import React from 'react';
 import { Wallet, Zap } from 'lucide-react';
 import { WalletState } from '../types';
 import AdminButton from './AdminButton';
+import { FarcasterAuthButton } from './FarcasterAuthButton';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   wallet: WalletState;
@@ -10,6 +12,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
+  const { user, isAuthenticated, signOut } = useAuth();
   const formatAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
   // Check if connected wallet is the referral wallet
@@ -58,14 +61,31 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
 
         <div className="flex items-center gap-2">
           {isReferralWallet && <AdminButton wallet={wallet} />}
-          <button
-            onClick={handleClick}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all ${getConnectButtonStyle()}`}
-            title={wallet.connected ? "Click to Disconnect" : "Connect Wallet"}
-          >
-            <Wallet size={16} />
-            {getConnectText()}
-          </button>
+          {!isAuthenticated && !wallet.connected && (
+            <FarcasterAuthButton className="flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all bg-purple-600 text-white border border-purple-500 hover:bg-purple-700" />
+          )}
+
+          {isAuthenticated && !wallet.connected && (
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all bg-red-600 text-white border border-red-500 hover:bg-red-700"
+              title="Sign out of Farcaster"
+            >
+              <Wallet size={16} />
+              {user?.name || 'FARCASTER'}
+            </button>
+          )}
+
+          {(wallet.connected || isAuthenticated) && (
+            <button
+              onClick={handleClick}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all ${getConnectButtonStyle()}`}
+              title={wallet.connected ? "Click to Disconnect" : "Connect Wallet"}
+            >
+              <Wallet size={16} />
+              {getConnectText()}
+            </button>
+          )}
         </div>
       </div>
     </header>
