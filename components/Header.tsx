@@ -2,8 +2,6 @@ import React from 'react';
 import { Wallet, Zap } from 'lucide-react';
 import { WalletState } from '../types';
 import AdminButton from './AdminButton';
-import { SignInButton } from '@farcaster/auth-kit';
-import { useProfile } from '@farcaster/auth-kit';
 
 interface HeaderProps {
   wallet: WalletState;
@@ -12,7 +10,6 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
-  const { isAuthenticated, profile } = useProfile();
   const formatAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
   // Check if connected wallet is the referral wallet
@@ -60,12 +57,11 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {isAuthenticated && (
+          {wallet.connected && wallet.providerName === 'Farcaster' && (
             <div className="text-sm text-gray-300">
-              {profile.username} (FID: {profile.fid})
+              Farcaster User
             </div>
           )}
-          {!isAuthenticated && <SignInButton />}
           {isReferralWallet && <AdminButton wallet={wallet} />}
           <button
             onClick={handleClick}

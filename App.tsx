@@ -1,5 +1,4 @@
 import './polyfills';
-import '@farcaster/auth-kit/styles.css';
 import React, { useState, useEffect } from 'react';
 import { useWallet } from './hooks/useWallet';
 import { PageType } from './types';
