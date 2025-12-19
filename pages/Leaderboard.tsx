@@ -2,16 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import { WalletState, UserData, FarcasterProfile } from '../types';
 import { Flame, Clock, ExternalLink } from 'lucide-react';
-import { checkInUser, getUserData, calculateTotalScore, getLeaderboard, updateLeaderboard } from '../services/db';
+import { checkInUser, getUserData, getLeaderboard, updateLeaderboard } from '../services/api';
+import { calculateTotalScore } from '../services/db';
 import { fetchUserNFTs } from '../services/web3';
 import { fetchFarcasterProfile } from '../services/farcaster';
 
 interface LeaderboardProps {
   wallet: WalletState;
   onConnect: () => void;
+  getAuthToken: () => Promise<string | null>;
 }
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
+const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect, getAuthToken }) => {
   const [userData, setUserData] = useState<UserData>({ lastCheckIn: 0, streak: 0, xp: 0 });
   const [nftCount, setNftCount] = useState(0);
   const [animatedCount, setAnimatedCount] = useState(0);
@@ -87,7 +89,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
     }
 
     setCheckingIn(true);
-    const result = await checkInUser(wallet.address);
+    const token = await getAuthToken();
+    if (!token) {
+      setCheckInMsg("Auth token failed");
+      setCheckingIn(false);
+      return;
+    }
+    const result = await checkInUser(wallet.address, token);
     setUserData(result.data);
     setCheckInMsg(result.message);
     setCheckingIn(false);
@@ -114,9 +122,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect }) => {
   useEffect(() => {
     if (wallet.connected && wallet.address && totalScore > 0) {
       // 1. Update the global store
-      updateLeaderboard(wallet.address, totalScore).then(() => {
-        // 2. Immediately refresh the list to show the new score
-        fetchLB();
+      getAuthToken().then(token => {
+        if (!token) return;
+        updateLeaderboard(wallet.address!, totalScore, token).then(() => {
+          // 2. Immediately refresh the list to show the new score
+          fetchLB();
+        });
       }).catch(console.error);
     }
   }, [totalScore, wallet.connected, wallet.address]);

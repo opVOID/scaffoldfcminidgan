@@ -198,5 +198,19 @@ export const useWallet = () => {
     return () => clearInterval(checkInterval);
   }, []);
 
-  return { wallet, connect, disconnect };
+  const getAuthToken = useCallback(async () => {
+    const fc = window.farcaster || window.sdk;
+    if (fc?.quickAuth?.getToken) {
+      try {
+        const token = await fc.quickAuth.getToken();
+        return token;
+      } catch (error) {
+        console.error("Failed to get Farcaster auth token:", error);
+        return null;
+      }
+    }
+    return null;
+  }, []);
+
+  return { wallet, connect, disconnect, getAuthToken };
 };

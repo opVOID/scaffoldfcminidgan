@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { getToken, mintToken, getTokensByOwner, getTotalMinted } from '../../../services/db';
+import { verifyAuth } from '../../../services/auth';
 
 // Base IPFS URL pattern - you can have a large collection of pre-generated images
 const IPFS_BASE_URL = 'https://ipfs.io/ipfs/bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey';
@@ -15,6 +16,10 @@ export async function handler(req: Request, res: Response) {
   }
 
   if (req.method === 'POST') {
+    const auth = await verifyAuth(req.headers.authorization);
+    if (!auth) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     return handleMintToken(req, res);
   }
 

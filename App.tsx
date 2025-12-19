@@ -20,7 +20,7 @@ declare global {
 import { useMiniApp } from '@neynar/react';
 
 function App() {
-  const { wallet, connect, disconnect } = useWallet();
+  const { wallet, connect, disconnect, getAuthToken } = useWallet();
   const [activePage, setActivePage] = useState<PageType>('mint');
   const { isSDKLoaded, actions, added } = useMiniApp();
   const hasAttemptedToAdd = React.useRef(false);
@@ -61,9 +61,9 @@ function App() {
   const renderPage = () => {
     switch (activePage) {
       case 'mint':
-        return <Mint wallet={wallet} onConnect={connect} />;
+        return <Mint wallet={wallet} onConnect={connect} getAuthToken={getAuthToken} />;
       case 'rank':
-        return <Leaderboard wallet={wallet} onConnect={connect} />;
+        return <Leaderboard wallet={wallet} onConnect={connect} getAuthToken={getAuthToken} />;
       case 'airdrop':
         return <Airdrop wallet={wallet} />;
       case 'card':

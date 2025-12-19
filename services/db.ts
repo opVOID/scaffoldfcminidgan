@@ -1,5 +1,5 @@
 
-import { UserData, FarcasterProfile } from '../types';
+import { UserData, FarcasterProfile, UserSettings } from '../types';
 import { KV_REST_API_URL, KV_REST_API_TOKEN } from '../constants';
 import { fetchFarcasterProfile } from './farcaster';
 
@@ -9,11 +9,6 @@ const defaultData: UserData = {
   xp: 0
 };
 
-export interface UserSettings {
-  newMints: boolean;
-  airdrops: boolean;
-  updates: boolean;
-}
 
 const defaultSettings: UserSettings = {
   newMints: true,
@@ -22,7 +17,7 @@ const defaultSettings: UserSettings = {
 };
 
 // Helper to make KV requests
-async function kvRequest(command: string, args: any[] = []) {
+export async function kvRequest(command: string, args: any[] = []) {
   if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
     console.error("Missing KV Env Variables");
     return null;
@@ -44,7 +39,7 @@ async function kvRequest(command: string, args: any[] = []) {
   }
 }
 
-async function kvSet(key: string, value: any) {
+export async function kvSet(key: string, value: any) {
   if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return null;
   try {
     const setRes = await fetch(`${KV_REST_API_URL}`, {
@@ -63,7 +58,7 @@ async function kvSet(key: string, value: any) {
   }
 }
 
-async function kvGet(key: string) {
+export async function kvGet(key: string) {
   if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return null;
   try {
     const response = await fetch(`${KV_REST_API_URL}`, {
@@ -183,17 +178,9 @@ export const getLeaderboard = async (limit: number = 50): Promise<{ address: str
   return leaderBoard.slice(0, limit);
 };
 
-
-
 export const calculateTotalScore = (userData: UserData, nftCount: number, animatedCount: number) => {
   return userData.xp + (nftCount * 1) + (animatedCount * 4);
 };
-
-export const testConnection = async () => {
-  if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return { success: false, error: "Missing Env Vars" };
-  const res = await kvSet('test_connection', { status: 'ok', timestamp: Date.now() });
-  return { success: !!res, error: res ? null : "Failed to write" };
-}
 
 // --- MINTING LOGIC (Redis Backed) ---
 
@@ -212,14 +199,23 @@ export const getToken = async (tokenId: string): Promise<MintedToken | null> => 
   return await kvGet(`token:${tokenId}`);
 };
 
+export const getTokensByOwner = async (owner: string): Promise<MintedToken[]> => {
+  if (!owner) return [];
+  const tokenIds = await kvRequest("LRANGE", [`user:${owner.toLowerCase()}:tokens`, 0, -1]);
+  if (!tokenIds || !Array.isArray(tokenIds)) return [];
+
+  const tokens: MintedToken[] = [];
+  for (const id of tokenIds) {
+    const token = await getToken(id);
+    if (token) tokens.push(token);
+  }
+  return tokens;
+};
+
 export const mintToken = async (owner: string, quantity: number = 1): Promise<{ success: boolean, tokens: MintedToken[], error?: string }> => {
   if (!owner) return { success: false, tokens: [], error: "Owner required" };
 
   const tokens: MintedToken[] = [];
-
-  // We need atomic increments. For simplicity in this REST client, we'll do a read-modify-write 
-  // but ideally use INCR. Upstash REST supports INCR.
-  // Let's use INCR for total_minted to get the new ID reliably.
 
   for (let i = 0; i < quantity; i++) {
     const newIdRes = await kvRequest("INCR", ["total_minted"]);
@@ -242,17 +238,4 @@ export const mintToken = async (owner: string, quantity: number = 1): Promise<{ 
   }
 
   return { success: true, tokens };
-};
-
-export const getTokensByOwner = async (owner: string): Promise<MintedToken[]> => {
-  // Get list of IDs
-  const tokenIds = await kvRequest("LRANGE", [`user:${owner.toLowerCase()}:tokens`, 0, -1]);
-  if (!tokenIds || !Array.isArray(tokenIds)) return [];
-
-  // Fetch all token details (could be optimized with MGET but we'll loop for now or use Promise.all)
-  const tokens = await Promise.all(tokenIds.map(async (id) => {
-    return await getToken(id);
-  }));
-
-  return tokens.filter(t => t !== null) as MintedToken[];
 };

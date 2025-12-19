@@ -4,7 +4,7 @@ import { WalletState, NFT } from '../types';
 import { CONTRACT_ADDRESS, EXPLORER_URL, IPFS_GATEWAY, APP_URL, ADMIN_WALLET } from '../constants';
 import { fetchUserNFTs, fetchMetadata, fetchCollectionStats } from '../services/web3';
 import { fetchBatchLocalMetadata, fetchLocalMetadataWithCache } from '../services/localMetadata';
-import { rewardUserShare } from '../services/db';
+import { rewardUserShare } from '../services/api';
 import { getRaffleStats } from '../services/megapot';
 import { getPhunkImageURL } from '../utils/getPhunkImageURL';
 import LazyImage from '../components/LazyImage';
@@ -12,9 +12,10 @@ import LazyImage from '../components/LazyImage';
 interface MintProps {
   wallet: WalletState;
   onConnect: () => void;
+  getAuthToken: () => Promise<string | null>;
 }
 
-const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
+const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken }) => {
   const [quantity, setQuantity] = useState(1);
   const [minting, setMinting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -636,8 +637,13 @@ Current jackpot pool: ${formattedBalance}! 💰`;
 
     // 1. Reward user logic (Optimistic update)
     if (wallet.address) {
-      await rewardUserShare(wallet.address);
-      setShareRewardMsg("+1 XP for Sharing!");
+      const token = await getAuthToken();
+      if (token) {
+        await rewardUserShare(wallet.address, token);
+        setShareRewardMsg("+1 XP for Sharing!");
+      } else {
+        console.warn("No auth token for share reward");
+      }
       setTimeout(() => setShareRewardMsg(''), 3000);
     }
 

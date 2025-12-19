@@ -49,3 +49,8 @@ export interface ReferralReward {
   isLoading: boolean;
   error: string | null;
 }
+export interface UserSettings {
+  newMints: boolean;
+  airdrops: boolean;
+  updates: boolean;
+}

@@ -9,17 +9,15 @@ export const RPC_URL = "https://mainnet.base.org";
 export const IPFS_GATEWAY = "https://ipfs.io/ipfs/bafybeigxqxe4wgfddtwjrcghfixzwf3eomnd3w4pzcuee7amndqwgkeqey/";
 
 // Safe Environment Variable Access
-const metaEnv = (import.meta as any).env;
+const metaEnv = (import.meta as any).env || process.env;
 
 export const env = {
-  VITE_KV_REST_API_URL: metaEnv?.VITE_KV_REST_API_URL || metaEnv?.KV_REST_API_URL || "",
-  VITE_KV_REST_API_TOKEN: metaEnv?.VITE_KV_REST_API_TOKEN || metaEnv?.KV_REST_API_TOKEN || "",
   VITE_NEYNAR_API_KEY: metaEnv?.VITE_NEYNAR_API_KEY || metaEnv?.NEYNAR_API_KEY || "",
 };
 
-// Vercel KV (Upstash) Credentials
-export const KV_REST_API_URL = env.VITE_KV_REST_API_URL;
-export const KV_REST_API_TOKEN = env.VITE_KV_REST_API_TOKEN;
+// Vercel KV (Upstash) Credentials - MOVE TO SERVER-ONLY
+export const KV_REST_API_URL = metaEnv?.KV_REST_API_URL || "";
+export const KV_REST_API_TOKEN = metaEnv?.KV_REST_API_TOKEN || "";
 
 // Neynar API for Farcaster Data
 export const NEYNAR_API_KEY = env.VITE_NEYNAR_API_KEY;
