@@ -23,8 +23,13 @@ export const useWallet = () => {
   });
 
   const getWalletProvider = () => {
-    // Try different wallet providers in order of preference
+    // Try Farcaster v2 SDK provider first
+    // Note: window.farcaster is often the SDK object, but the provider is deeper
+    if (window.farcaster?.wallet?.ethereumProvider) return window.farcaster.wallet.ethereumProvider;
+    if (window.farcaster?.ethereumProvider) return window.farcaster.ethereumProvider;
     if (window.farcaster) return window.farcaster;
+
+    // Standard EIP-1193 providers
     if (window.ethereum?.isMetaMask) return window.ethereum;
     if (window.ethereum?.isCoinbaseWallet) return window.ethereum;
     if (window.ethereum?.isWalletConnect) return window.ethereum;
@@ -38,7 +43,9 @@ export const useWallet = () => {
     if (provider?.isMetaMask) return 'MetaMask';
     if (provider?.isCoinbaseWallet) return 'Coinbase Wallet';
     if (provider?.isWalletConnect) return 'WalletConnect';
-    if (window.farcaster === provider) return 'Farcaster';
+    if (window.farcaster?.wallet?.ethereumProvider === provider ||
+      window.farcaster?.ethereumProvider === provider ||
+      window.farcaster === provider) return 'Farcaster';
     if (window.walletlink === provider) return 'WalletLink';
     if (window.bitkeep === provider) return 'BitKeep';
     return 'Unknown Wallet';
@@ -68,33 +75,33 @@ export const useWallet = () => {
     }
 
     const walletName = getWalletName(provider);
+    console.log(`Attempting to connect with ${walletName}...`);
 
     try {
-      // For Farcaster wallets, we need to be more explicit
+      // For Farcaster wallets, ensure ready() is called if available
       if (walletName === 'Farcaster') {
-        // Farcaster might need explicit user interaction and ready() call
         if (typeof provider.ready === 'function') {
           await provider.ready();
         }
-        await provider.request({ method: 'eth_requestAccounts' });
       }
 
       const accounts = await provider.request({ method: 'eth_requestAccounts' });
-      const chainId = parseInt(await provider.request({ method: 'eth_chainId' }), 16);
+      const chainIdHex = await provider.request({ method: 'eth_chainId' });
+      const chainId = parseInt(chainIdHex, 16);
 
       setWallet({
         address: accounts[0],
         chainId,
         connected: true,
         providerName: walletName,
+        provider: provider, // Store provider for direct usage
       });
 
       await checkNetwork(provider);
     } catch (error) {
       console.error("Connection error:", error);
-      // More specific error handling for Farcaster
       if (walletName === 'Farcaster') {
-        alert("Failed to connect to Farcaster wallet. Please make sure you're in a Farcaster client or have the wallet installed.");
+        alert("Failed to connect to Farcaster wallet. Please make sure you're in a Farcaster client.");
       }
     }
   }, [checkNetwork]);
@@ -110,19 +117,21 @@ export const useWallet = () => {
 
   useEffect(() => {
     const provider = getWalletProvider();
-    if (provider) {
+    if (provider && typeof provider.on === 'function') {
       provider.on('accountsChanged', (accounts: string[]) => {
         setWallet(prev => ({
           ...prev,
           address: accounts[0] || null,
-          connected: accounts.length > 0
+          connected: accounts.length > 0,
+          provider: provider
         }));
       });
 
       provider.on('chainChanged', (chainId: string) => {
         setWallet(prev => ({
           ...prev,
-          chainId: parseInt(chainId, 16)
+          chainId: parseInt(chainId, 16),
+          provider: provider
         }));
       });
 
@@ -130,16 +139,18 @@ export const useWallet = () => {
       const checkExistingConnection = async () => {
         try {
           const accounts = await provider.request({ method: 'eth_accounts' });
-          if (accounts.length > 0) {
-            const chainId = parseInt(await provider.request({ method: 'eth_chainId' }), 16);
+          if (accounts && accounts.length > 0) {
+            const chainIdHex = await provider.request({ method: 'eth_chainId' });
+            const chainId = parseInt(chainIdHex, 16);
             const walletName = getWalletName(provider);
 
-            console.log('Found existing connection:', accounts[0]);
+            console.log('Found existing connection:', accounts[0], 'via', walletName);
             setWallet({
               address: accounts[0],
               chainId,
               connected: true,
               providerName: walletName,
+              provider: provider,
             });
           }
         } catch (error) {

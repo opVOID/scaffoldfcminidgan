@@ -242,8 +242,8 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
         value: totalPriceWei.toString(16),
       };
 
-      // Send transaction
-      const txHash = await (window as any).ethereum.request({
+      // Send transaction using the correct provider
+      const txHash = await wallet.provider.request({
         method: 'eth_sendTransaction',
         params: [txParams],
       });
@@ -254,7 +254,7 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect }) => {
       setTimeout(async () => {
         try {
           // Get the real minted token IDs from transaction receipt
-          const receipt = await (window as any).ethereum.request({
+          const receipt = await wallet.provider.request({
             method: 'eth_getTransactionReceipt',
             params: [txHash],
           });

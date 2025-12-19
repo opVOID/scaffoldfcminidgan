@@ -6,6 +6,7 @@ export interface WalletState {
   chainId: number | null;
   connected: boolean;
   providerName: string | null;
+  provider?: any;
 }
 
 export interface ContractInfo {

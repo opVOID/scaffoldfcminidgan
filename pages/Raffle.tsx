@@ -368,7 +368,7 @@ const Raffle: React.FC = () => {
     try {
       const totalCost = buyAmount * stats.ticketCost;
       const txParams = prepareApproveTransaction(wallet.address, totalCost); // Approve only the amount needed
-      const txHash = await (window as any).ethereum.request({
+      const txHash = await wallet.provider.request({
         method: 'eth_sendTransaction',
         params: [txParams],
       });
@@ -417,7 +417,7 @@ const Raffle: React.FC = () => {
     setBuying(true);
     try {
       const txParams = prepareBuyTransaction(buyAmount, wallet.address);
-      const txHash = await (window as any).ethereum.request({
+      const txHash = await wallet.provider.request({
         method: 'eth_sendTransaction',
         params: [txParams],
       });
