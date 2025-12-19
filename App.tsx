@@ -20,9 +20,9 @@ declare global {
 import { useMiniApp } from '@neynar/react';
 
 function App() {
-  const { wallet, connect, disconnect, getAuthToken } = useWallet();
-  const [activePage, setActivePage] = useState<PageType>('mint');
   const { isSDKLoaded, actions, added } = useMiniApp();
+  const { wallet, connect, disconnect, getAuthToken } = useWallet({ isLoaded: isSDKLoaded, actions });
+  const [activePage, setActivePage] = useState<PageType>('mint');
   const hasAttemptedToAdd = React.useRef(false);
 
   const handleAddMiniApp = async () => {
