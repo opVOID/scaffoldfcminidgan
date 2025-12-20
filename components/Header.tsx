@@ -1,6 +1,5 @@
 import React from 'react';
 import { Wallet, Zap } from 'lucide-react';
-import { SignInButton, useSignIn } from '@farcaster/auth-kit';
 import { WalletState } from '../types';
 import AdminButton from './AdminButton';
 
@@ -11,7 +10,6 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
-  const signIn = useSignIn();
   const formatAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
   // Check if connected wallet is the referral wallet
@@ -19,17 +17,30 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
     wallet.address?.toLowerCase() === '0x5872286f932e5b015ef74b2f9c8723022d1b5e1b'.toLowerCase();
 
   const getConnectText = () => {
-    if (signIn.isSuccess && signIn.data) {
-      return signIn.data.username || formatAddress(signIn.data.custodyAddress || '');
+    if (wallet.connected && wallet.address) {
+      return formatAddress(wallet.address);
     }
     return 'CONNECT WALLET';
   };
 
   const getConnectButtonStyle = () => {
-    if (signIn.isSuccess) {
+    if (wallet.connected) {
       return 'bg-purple-600 text-white border border-purple-500 hover:bg-red-600 hover:border-red-500';
     }
     return 'bg-neon text-black hover:bg-white hover:scale-105';
+  };
+
+  const handleClick = () => {
+    if (wallet.connected) {
+      // If connected, serve option to disconnect
+      if (onDisconnect) {
+        if (window.confirm("Disconnect current wallet?")) {
+          onDisconnect();
+        }
+      }
+    } else {
+      onConnect();
+    }
   };
 
   return (
@@ -41,17 +52,20 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {signIn.isSuccess && signIn.data && (
+          {wallet.connected && wallet.providerName === 'Farcaster' && (
             <div className="text-sm text-gray-300">
-              {signIn.data.username || `FID: ${signIn.data.fid}`}
+              Farcaster User
             </div>
           )}
           {isReferralWallet && <AdminButton wallet={wallet} />}
-          <SignInButton
-            onSuccess={({ fid, username, message, signature }) => {
-              console.log(`Connected: ${username} (FID: ${fid})`);
-            }}
-          />
+          <button
+            onClick={handleClick}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all ${getConnectButtonStyle()}`}
+            title={wallet.connected ? "Click to Disconnect" : "Connect Wallet"}
+          >
+            <Wallet size={16} />
+            {getConnectText()}
+          </button>
         </div>
       </div>
     </header>
