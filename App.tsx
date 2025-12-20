@@ -27,7 +27,7 @@ const authKitConfig = {
 
 // Inner App component that uses the auth kit
 function InnerApp() {
-  const { isAuthenticated, data } = useSignIn();
+  const signIn = useSignIn();
   const [activePage, setActivePage] = useState<PageType>('mint');
 
   // Auto-connect in Farcaster environment
@@ -39,20 +39,20 @@ function InnerApp() {
       window.location?.search?.includes('farcaster')
     );
     
-    if (isFarcasterEnv && !isAuthenticated) {
+    if (isFarcasterEnv && !signIn.isSuccess) {
       // Auto-connect when in Farcaster environment
       console.log('In Farcaster environment, auto-connecting...');
     }
-  }, [isAuthenticated]);
+  }, [signIn.isSuccess]);
 
   const formatAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
   const renderPage = () => {
     switch (activePage) {
       case 'mint':
-        return <Mint wallet={{ connected: isAuthenticated, address: data?.custodyAddress || null }} />;
+        return <Mint wallet={{ connected: signIn.isSuccess, address: signIn.data?.custodyAddress || null }} />;
       case 'leaderboard':
-        return <Leaderboard wallet={{ connected: isAuthenticated, address: data?.custodyAddress || null }} />;
+        return <Leaderboard wallet={{ connected: signIn.isSuccess, address: signIn.data?.custodyAddress || null }} />;
       case 'raffle':
         return <Raffle />;
       case 'card':
@@ -62,7 +62,7 @@ function InnerApp() {
       case 'settings':
         return <Settings />;
       default:
-        return <Mint wallet={{ connected: isAuthenticated, address: data?.custodyAddress || null }} />;
+        return <Mint wallet={{ connected: signIn.isSuccess, address: signIn.data?.custodyAddress || null }} />;
     }
   };
 
@@ -70,8 +70,8 @@ function InnerApp() {
     <div className="min-h-screen bg-black text-white">
       <Header 
         wallet={{ 
-          connected: isAuthenticated, 
-          address: data?.custodyAddress || null,
+          connected: signIn.isSuccess, 
+          address: signIn.data?.custodyAddress || null,
           providerName: 'Farcaster'
         }} 
         onConnect={() => {}} // Handled by SignInButton

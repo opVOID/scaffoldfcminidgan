@@ -11,7 +11,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
-  const { isAuthenticated, data } = useSignIn();
+  const signIn = useSignIn();
   const formatAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
   // Check if connected wallet is the referral wallet
@@ -19,14 +19,14 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
     wallet.address?.toLowerCase() === '0x5872286f932e5b015ef74b2f9c8723022d1b5e1b'.toLowerCase();
 
   const getConnectText = () => {
-    if (isAuthenticated && data) {
-      return data.username || formatAddress(data.custodyAddress || '');
+    if (signIn.isSuccess && signIn.data) {
+      return signIn.data.username || formatAddress(signIn.data.custodyAddress || '');
     }
     return 'CONNECT WALLET';
   };
 
   const getConnectButtonStyle = () => {
-    if (isAuthenticated) {
+    if (signIn.isSuccess) {
       return 'bg-purple-600 text-white border border-purple-500 hover:bg-red-600 hover:border-red-500';
     }
     return 'bg-neon text-black hover:bg-white hover:scale-105';
@@ -41,9 +41,9 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {isAuthenticated && data && (
+          {signIn.isSuccess && signIn.data && (
             <div className="text-sm text-gray-300">
-              {data.username || `FID: ${data.fid}`}
+              {signIn.data.username || `FID: ${signIn.data.fid}`}
             </div>
           )}
           {isReferralWallet && <AdminButton wallet={wallet} />}
@@ -51,15 +51,7 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
             onSuccess={({ fid, username, message, signature }) => {
               console.log(`Connected: ${username} (FID: ${fid})`);
             }}
-          >
-            <button
-              className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all ${getConnectButtonStyle()}`}
-              title={isAuthenticated ? "Click to Disconnect" : "Connect Wallet"}
-            >
-              <Wallet size={16} />
-              {getConnectText()}
-            </button>
-          </SignInButton>
+          />
         </div>
       </div>
     </header>
