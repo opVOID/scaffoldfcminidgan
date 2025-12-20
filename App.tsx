@@ -27,51 +27,98 @@ function InnerApp() {
   // Initialize app and handle authentication
   useEffect(() => {
     const initializeApp = async () => {
+      console.log('[DEBUG] Starting app initialization...');
+      
       try {
-        // Check if we're in a Farcaster environment
+        // Debug: Log current environment
+        console.log('[DEBUG] Checking Farcaster environment...');
         const isFarcasterEnv = !!(
           window.farcaster || 
           window.sdk || 
           (window as any).frameSDK ||
           window.location?.search?.includes('farcaster')
         );
+        console.log('[DEBUG] Farcaster environment detected:', isFarcasterEnv);
 
         if (isFarcasterEnv) {
-          // Try to get authenticated user using Quick Auth
           try {
-            const response = await sdk.actions.ready();
-            console.log('App ready response:', response);
+            console.log('[DEBUG] Initializing Farcaster SDK...');
+            
+            // Add debug info about SDK availability
+            console.log('[DEBUG] SDK available:', !!sdk);
+            console.log('[DEBUG] sdk.actions:', sdk?.actions ? 'available' : 'missing');
+            
+            // Call ready() to initialize the SDK and hide splash screen
+            try {
+              console.log('[DEBUG] Calling sdk.actions.ready()...');
+              const readyResponse = await sdk.actions.ready();
+              console.log('[DEBUG] sdk.actions.ready() response:', readyResponse);
+              
+              // If we get here, SDK is properly initialized
+              console.log('[DEBUG] Farcaster SDK initialized successfully');
+            } catch (readyError) {
+              console.error('[ERROR] Failed to initialize Farcaster SDK:', readyError);
+              // Even if ready() fails, we should try to continue
+              return;
+            }
             
             // Try Quick Auth for seamless authentication
-            const authResponse = await fetch('/api/auth/quick-auth', {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            });
-            
-            if (authResponse.ok) {
-              const userData = await authResponse.json();
-              setUser(userData);
-              setIsAuthenticated(true);
-              console.log('User authenticated via Quick Auth:', userData);
+            try {
+              console.log('[DEBUG] Attempting Quick Auth...');
+              const authResponse = await fetch('/api/auth/quick-auth', {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+              
+              if (authResponse.ok) {
+                const userData = await authResponse.json();
+                console.log('[DEBUG] Quick Auth successful:', userData);
+                setUser(userData);
+                setIsAuthenticated(true);
+              } else {
+                console.log('[DEBUG] Quick Auth not available or failed:', await authResponse.text());
+              }
+            } catch (authError) {
+              console.error('[ERROR] Error during Quick Auth:', authError);
+              // Continue without authentication
             }
           } catch (error) {
-            console.log('Quick Auth not available, app ready');
+            console.error('[ERROR] Farcaster initialization failed:', error);
+            // Try to call ready() one more time as a fallback
+            try {
+              await sdk.actions.ready();
+              console.log('[DEBUG] Fallback ready() call succeeded');
+            } catch (fallbackError) {
+              console.error('[ERROR] Fallback ready() failed:', fallbackError);
+            }
+          }
+        } else {
+          console.log('[DEBUG] Not in Farcaster environment, skipping SDK initialization');
+          // If not in Farcaster env but SDK is available, still call ready()
+          if (typeof sdk?.actions?.ready === 'function') {
+            try {
+              await sdk.actions.ready();
+              console.log('[DEBUG] Called ready() in non-Farcaster environment');
+            } catch (e) {
+              console.error('[ERROR] Failed to call ready() in non-Farcaster environment:', e);
+            }
           }
         }
-
-        // Call ready() to hide splash screen
-        await sdk.actions.ready();
-        
       } catch (error) {
-        console.error('Failed to initialize app:', error);
-        // Still call ready() even if auth fails
-        try {
-          await sdk.actions.ready();
-        } catch (readyError) {
-          console.error('Failed to call ready():', readyError);
+        console.error('[ERROR] Critical error during app initialization:', error);
+      } finally {
+        // As a final fallback, try to call ready() one more time
+        if (typeof sdk?.actions?.ready === 'function') {
+          try {
+            await sdk.actions.ready();
+            console.log('[DEBUG] Final ready() call completed');
+          } catch (e) {
+            console.error('[ERROR] Final ready() call failed:', e);
+          }
         }
+        console.log('[DEBUG] App initialization completed');
       }
     };
 
