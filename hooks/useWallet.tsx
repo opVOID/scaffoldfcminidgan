@@ -29,21 +29,22 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
 
     if (fc) {
       console.log("Farcaster SDK detected:", fc);
+      
       // Try Neynar SDK wallet provider first (from documentation)
-      if (fc.wallet?.ethProvider) {
+      if (fc.wallet?.ethProvider && typeof fc.wallet.ethProvider.request === 'function') {
         console.log("Using fc.wallet.ethProvider (Neynar SDK)");
         return fc.wallet.ethProvider;
       }
-      if (fc.wallet?.provider) {
+      if (fc.wallet?.provider && typeof fc.wallet.provider.request === 'function') {
         console.log("Using fc.wallet.provider");
         return fc.wallet.provider;
       }
-      if (fc.ethereumProvider) {
+      if (fc.ethereumProvider && typeof fc.ethereumProvider.request === 'function') {
         console.log("Using fc.ethereumProvider");
         return fc.ethereumProvider;
       }
       // For direct SDK access, try the global sdk
-      if (window.sdk?.wallet?.ethProvider) {
+      if (window.sdk?.wallet?.ethProvider && typeof window.sdk.wallet.ethProvider.request === 'function') {
         console.log("Using window.sdk.wallet.ethProvider");
         return window.sdk.wallet.ethProvider;
       }
@@ -51,16 +52,22 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
         console.log("Using fc object as provider");
         return fc;
       }
+      
+      // If we have Farcaster SDK but no valid provider, create a wrapper
+      if (sdkState?.actions && typeof sdkState.actions.request === 'function') {
+        console.log("Using sdkState.actions as provider");
+        return sdkState.actions;
+      }
     }
 
     // Standard EIP-1193 providers
-    if (window.ethereum) {
+    if (window.ethereum && typeof window.ethereum.request === 'function') {
       // If we are in Farcaster, window.ethereum might be the right one too
       return window.ethereum;
     }
 
-    if (window.walletlink) return window.walletlink;
-    if (window.bitkeep) return window.bitkeep;
+    if (window.walletlink && typeof window.walletlink.request === 'function') return window.walletlink;
+    if (window.bitkeep && typeof window.bitkeep.request === 'function') return window.bitkeep;
 
     return null;
   };
@@ -75,7 +82,8 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
       fc?.wallet?.provider === provider ||
       fc?.ethereumProvider === provider ||
       fc === provider ||
-      window.sdk?.wallet?.ethProvider === provider) return 'Farcaster';
+      window.sdk?.wallet?.ethProvider === provider ||
+      sdkState?.actions === provider) return 'Farcaster';
 
     if (window.walletlink === provider) return 'WalletLink';
     if (window.bitkeep === provider) return 'BitKeep';

@@ -220,8 +220,15 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken }) => {
   };
 
   const handleMint = async () => {
-    if (!wallet.connected) {
+    if (!wallet.connected || !wallet.provider) {
       onConnect();
+      return;
+    }
+
+    // Validate provider has request method
+    if (typeof wallet.provider.request !== 'function') {
+      console.error('Provider does not have request method:', wallet.provider);
+      showMessage('Invalid wallet provider. Please reconnect your wallet.', 'error');
       return;
     }
 
@@ -243,6 +250,10 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken }) => {
         value: totalPriceWei.toString(16),
       };
 
+      console.log('Sending transaction with params:', txParams);
+      console.log('Provider:', wallet.provider);
+      console.log('Provider type:', typeof wallet.provider);
+
       // Send transaction using the correct provider
       const txHash = await wallet.provider.request({
         method: 'eth_sendTransaction',
@@ -254,6 +265,11 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken }) => {
       // Wait for transaction confirmation and get real minted token(s)
       setTimeout(async () => {
         try {
+          // Validate provider still has request method
+          if (typeof wallet.provider.request !== 'function') {
+            throw new Error('Provider lost request method during transaction');
+          }
+
           // Get the real minted token IDs from transaction receipt
           const receipt = await wallet.provider.request({
             method: 'eth_getTransactionReceipt',
