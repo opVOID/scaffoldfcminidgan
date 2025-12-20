@@ -1,6 +1,6 @@
 import React from 'react';
 import { Wallet, Zap } from 'lucide-react';
-import { ConnectButton, useAuthKit } from '@farcaster/auth-kit';
+import { SignInButton, useSignIn } from '@farcaster/auth-kit';
 import { WalletState } from '../types';
 import AdminButton from './AdminButton';
 
@@ -11,7 +11,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
-  const { isAuthenticated, user } = useAuthKit();
+  const { isAuthenticated, data } = useSignIn();
   const formatAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
   // Check if connected wallet is the referral wallet
@@ -19,8 +19,8 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
     wallet.address?.toLowerCase() === '0x5872286f932e5b015ef74b2f9c8723022d1b5e1b'.toLowerCase();
 
   const getConnectText = () => {
-    if (isAuthenticated && user) {
-      return user.username || formatAddress(user.custodyAddress || '');
+    if (isAuthenticated && data) {
+      return data.username || formatAddress(data.custodyAddress || '');
     }
     return 'CONNECT WALLET';
   };
@@ -41,13 +41,13 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {isAuthenticated && user && (
+          {isAuthenticated && data && (
             <div className="text-sm text-gray-300">
-              {user.username || `FID: ${user.fid}`}
+              {data.username || `FID: ${data.fid}`}
             </div>
           )}
           {isReferralWallet && <AdminButton wallet={wallet} />}
-          <ConnectButton
+          <SignInButton
             onSuccess={({ fid, username, message, signature }) => {
               console.log(`Connected: ${username} (FID: ${fid})`);
             }}
@@ -59,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
               <Wallet size={16} />
               {getConnectText()}
             </button>
-          </ConnectButton>
+          </SignInButton>
         </div>
       </div>
     </header>

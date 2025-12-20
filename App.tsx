@@ -1,17 +1,17 @@
 import './polyfills';
 import React, { useState, useEffect } from 'react';
-import { AuthKitProvider, ConnectButton, useAuthKit } from '@farcaster/auth-kit';
+import { AuthKitProvider, SignInButton, useSignIn } from '@farcaster/auth-kit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
-import { Header } from './components/Header';
-import { NavBar } from './components/NavBar';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { Mint } from './pages/Mint';
-import { Leaderboard } from './pages/Leaderboard';
-import { Raffle } from './pages/Raffle';
-import { Card } from './pages/Card';
-import { Airdrop } from './pages/Airdrop';
-import { Settings } from './pages/Settings';
+import Header from './components/Header';
+import NavBar from './components/NavBar';
+import ErrorBoundary from './components/ErrorBoundary';
+import Mint from './pages/Mint';
+import Leaderboard from './pages/Leaderboard';
+import Raffle from './pages/Raffle';
+import Card from './pages/Card';
+import Airdrop from './pages/Airdrop';
+import Settings from './pages/Settings';
 import { config } from './config/wagmi';
 import type { PageType } from './types';
 
@@ -27,7 +27,7 @@ const authKitConfig = {
 
 // Inner App component that uses the auth kit
 function InnerApp() {
-  const { isAuthenticated, user, profile } = useAuthKit();
+  const { isAuthenticated, data } = useSignIn();
   const [activePage, setActivePage] = useState<PageType>('mint');
 
   // Auto-connect in Farcaster environment
@@ -50,9 +50,9 @@ function InnerApp() {
   const renderPage = () => {
     switch (activePage) {
       case 'mint':
-        return <Mint wallet={{ connected: isAuthenticated, address: user?.custodyAddress || null }} />;
+        return <Mint wallet={{ connected: isAuthenticated, address: data?.custodyAddress || null }} />;
       case 'leaderboard':
-        return <Leaderboard wallet={{ connected: isAuthenticated, address: user?.custodyAddress || null }} />;
+        return <Leaderboard wallet={{ connected: isAuthenticated, address: data?.custodyAddress || null }} />;
       case 'raffle':
         return <Raffle />;
       case 'card':
@@ -62,7 +62,7 @@ function InnerApp() {
       case 'settings':
         return <Settings />;
       default:
-        return <Mint wallet={{ connected: isAuthenticated, address: user?.custodyAddress || null }} />;
+        return <Mint wallet={{ connected: isAuthenticated, address: data?.custodyAddress || null }} />;
     }
   };
 
@@ -71,11 +71,11 @@ function InnerApp() {
       <Header 
         wallet={{ 
           connected: isAuthenticated, 
-          address: user?.custodyAddress || null,
+          address: data?.custodyAddress || null,
           providerName: 'Farcaster'
         }} 
-        onConnect={() => {}} // Handled by ConnectButton
-        onDisconnect={() => {}} // Handled by ConnectButton
+        onConnect={() => {}} // Handled by SignInButton
+        onDisconnect={() => {}} // Handled by SignInButton
       />
       
       <main className="pt-20 pb-20">
