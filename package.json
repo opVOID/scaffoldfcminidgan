@@ -11,7 +11,9 @@
     "upload-ftp": "node scripts/upload-to-ftp.js"
   },
   "dependencies": {
+    "@farcaster/auth-client": "^0.7.0",
     "@farcaster/auth-kit": "^0.8.1",
+    "@farcaster/connect-kit": "^0.0.31",
     "@farcaster/miniapp-node": "^0.1.11",
     "@neynar/react": "^1.2.22",
     "@pigment-css/react": "^0.0.30",

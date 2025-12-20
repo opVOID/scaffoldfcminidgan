@@ -1,5 +1,6 @@
 import React from 'react';
 import { Wallet, Zap } from 'lucide-react';
+import { ConnectButton, useAuthKit } from '@farcaster/auth-kit';
 import { WalletState } from '../types';
 import AdminButton from './AdminButton';
 
@@ -10,6 +11,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
+  const { isAuthenticated, user } = useAuthKit();
   const formatAddress = (addr: string) => `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 
   // Check if connected wallet is the referral wallet
@@ -17,35 +19,17 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
     wallet.address?.toLowerCase() === '0x5872286f932e5b015ef74b2f9c8723022d1b5e1b'.toLowerCase();
 
   const getConnectText = () => {
-    if (wallet.connected && wallet.address) {
-      // User requested strictly NO provider names, just the address
-      return formatAddress(wallet.address);
+    if (isAuthenticated && user) {
+      return user.username || formatAddress(user.custodyAddress || '');
     }
     return 'CONNECT WALLET';
   };
 
   const getConnectButtonStyle = () => {
-    if (wallet.connected && wallet.address) {
-      if (wallet.providerName === 'Farcaster') {
-        return 'bg-purple-600 text-white border border-purple-500 hover:bg-red-600 hover:border-red-500';
-      }
-      // Added hover red style to indicate disconnect action
-      return 'bg-gray-800 text-neon border border-gray-700 hover:bg-red-900/80 hover:text-white hover:border-red-500';
+    if (isAuthenticated) {
+      return 'bg-purple-600 text-white border border-purple-500 hover:bg-red-600 hover:border-red-500';
     }
     return 'bg-neon text-black hover:bg-white hover:scale-105';
-  };
-
-  const handleClick = () => {
-    if (wallet.connected) {
-      // If connected, serve option to disconnect
-      if (onDisconnect) {
-        if (window.confirm("Disconnect current wallet?")) {
-          onDisconnect();
-        }
-      }
-    } else {
-      onConnect();
-    }
   };
 
   return (
@@ -57,20 +41,25 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {wallet.connected && wallet.providerName === 'Farcaster' && (
+          {isAuthenticated && user && (
             <div className="text-sm text-gray-300">
-              Farcaster User
+              {user.username || `FID: ${user.fid}`}
             </div>
           )}
           {isReferralWallet && <AdminButton wallet={wallet} />}
-          <button
-            onClick={handleClick}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all ${getConnectButtonStyle()}`}
-            title={wallet.connected ? "Click to Disconnect" : "Connect Wallet"}
+          <ConnectButton
+            onSuccess={({ fid, username, message, signature }) => {
+              console.log(`Connected: ${username} (FID: ${fid})`);
+            }}
           >
-            <Wallet size={16} />
-            {getConnectText()}
-          </button>
+            <button
+              className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm transition-all ${getConnectButtonStyle()}`}
+              title={isAuthenticated ? "Click to Disconnect" : "Connect Wallet"}
+            >
+              <Wallet size={16} />
+              {getConnectText()}
+            </button>
+          </ConnectButton>
         </div>
       </div>
     </header>
