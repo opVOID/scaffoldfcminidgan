@@ -107,8 +107,16 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect, getAuthTok
 
   // Fetch Leaderboard Function
   const fetchLB = async () => {
-    const data = await getLeaderboard(50);
-    setLeaderboardData(data);
+    try {
+      setLoading(true);
+      const data = await getLeaderboard(50);
+      setLeaderboardData(data);
+      console.log('Leaderboard updated with', data.length, 'entries');
+    } catch (error) {
+      console.error('Failed to fetch leaderboard:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Initial Fetch & Interval
@@ -235,9 +243,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ wallet, onConnect, getAuthTok
                 );
               })}
             </div>
-          ) : (
+          ) : loading ? (
             <div className="py-8 text-center text-gray-500">
               <p>Loading leaderboard...</p>
+            </div>
+          ) : (
+            <div className="py-8 text-center text-gray-500">
+              <p>No leaderboard data available</p>
+              <p className="text-xs mt-2">Check back later or connect your wallet</p>
             </div>
           )}
         </div>

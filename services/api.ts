@@ -45,8 +45,13 @@ export const checkInUser = async (address: string, token: string): Promise<{ suc
 export const getLeaderboard = async (limit: number = 50): Promise<{ address: string, score: number }[]> => {
     try {
         const response = await fetch(`/api/leaderboard?limit=${limit}`);
-        if (!response.ok) return [];
-        return await response.json();
+        if (!response.ok) {
+            console.error('Leaderboard API response not ok:', response.status, response.statusText);
+            return [];
+        }
+        const data = await response.json();
+        console.log('Leaderboard data loaded:', data.length, 'entries');
+        return data;
     } catch (error) {
         console.error("Fetch Leaderboard Error:", error);
         return [];
