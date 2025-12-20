@@ -29,23 +29,23 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
 
     if (fc) {
       console.log("Farcaster SDK detected:", fc);
-      // Try Neynar SDK wallet provider first
-      if (fc.wallet?.provider) {
-        console.log("Using fc.wallet.provider (Neynar SDK)");
-        return fc.wallet.provider;
+      // Try Neynar SDK wallet provider first (from documentation)
+      if (fc.wallet?.ethProvider) {
+        console.log("Using fc.wallet.ethProvider (Neynar SDK)");
+        return fc.wallet.ethProvider;
       }
-      if (fc.wallet?.ethereumProvider) {
-        console.log("Using fc.wallet.ethereumProvider");
-        return fc.wallet.ethereumProvider;
+      if (fc.wallet?.provider) {
+        console.log("Using fc.wallet.provider");
+        return fc.wallet.provider;
       }
       if (fc.ethereumProvider) {
         console.log("Using fc.ethereumProvider");
         return fc.ethereumProvider;
       }
-      // For Neynar SDK, try to get provider from actions
-      if (sdkState?.actions?.getProvider) {
-        console.log("Using sdkState.actions.getProvider");
-        return sdkState.actions.getProvider();
+      // For direct SDK access, try the global sdk
+      if (window.sdk?.wallet?.ethProvider) {
+        console.log("Using window.sdk.wallet.ethProvider");
+        return window.sdk.wallet.ethProvider;
       }
       if (typeof fc.request === 'function') {
         console.log("Using fc object as provider");
@@ -71,11 +71,11 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
     if (provider?.isWalletConnect) return 'WalletConnect';
 
     const fc = window.farcaster || window.sdk || (window as any).frameSDK || sdkState?.actions;
-    if (fc?.wallet?.provider === provider ||
-      fc?.wallet?.ethereumProvider === provider ||
+    if (fc?.wallet?.ethProvider === provider ||
+      fc?.wallet?.provider === provider ||
       fc?.ethereumProvider === provider ||
       fc === provider ||
-      sdkState?.actions?.getProvider?.() === provider) return 'Farcaster';
+      window.sdk?.wallet?.ethProvider === provider) return 'Farcaster';
 
     if (window.walletlink === provider) return 'WalletLink';
     if (window.bitkeep === provider) return 'BitKeep';
@@ -109,7 +109,7 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
     const provider = getWalletProvider();
 
     if (!provider) {
-      const diagnostics = `FC: ${!!(window.farcaster || window.sdk || (window as any).frameSDK)}, NeynarLoaded: ${!!sdkState?.isLoaded}, Actions: ${!!sdkState?.actions}, ETH: ${!!window.ethereum}`;
+      const diagnostics = `FC: ${!!(window.farcaster || window.sdk || (window as any).frameSDK)}, NeynarLoaded: ${!!sdkState?.isLoaded}, Actions: ${!!sdkState?.actions}, SDK_Wallet: ${!!window.sdk?.wallet}, ETH: ${!!window.ethereum}`;
       console.warn("No Web3 provider found", diagnostics);
       alert(`Wallet not detected. ${diagnostics}\nPlease use a desktop browser with MetaMask or open this within Farcaster.`);
       return;
@@ -207,12 +207,50 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
       return true;
     };
 
+    const checkFarcasterWallet = async () => {
+      // Check if we're in a Farcaster mini-app with wallet already connected
+      if (sdkState?.isLoaded && sdkState?.actions) {
+        console.log('Checking Farcaster mini-app wallet...');
+        
+        // Try to get the wallet provider from Farcaster SDK
+        const provider = getWalletProvider();
+        
+        if (provider) {
+          console.log('Farcaster wallet provider found, checking connection...');
+          const success = await setupProvider(provider);
+          if (success) {
+            clearInterval(checkInterval);
+            return;
+          }
+        }
+        
+        // If no provider found but we're in Farcaster, set as connected anyway
+        // since Farcaster mobile apps have wallets connected by default
+        console.log('In Farcaster mini-app, setting wallet as connected');
+        setWallet({
+          address: 'Farcaster Wallet', // Placeholder address
+          chainId: 8453, // Base chain ID
+          connected: true,
+          providerName: 'Farcaster',
+          provider: sdkState.actions,
+        });
+        clearInterval(checkInterval);
+        return;
+      }
+    };
+
     const runCheck = async () => {
-      const provider = getWalletProvider();
-      if (provider) {
-        const success = await setupProvider(provider);
-        if (success) {
-          clearInterval(checkInterval);
+      // First check if we're in Farcaster mini-app
+      if (sdkState?.isLoaded) {
+        await checkFarcasterWallet();
+      } else {
+        // Standard wallet detection for non-Farcaster environments
+        const provider = getWalletProvider();
+        if (provider) {
+          const success = await setupProvider(provider);
+          if (success) {
+            clearInterval(checkInterval);
+          }
         }
       }
 
@@ -227,7 +265,7 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
     checkInterval = setInterval(runCheck, 500);
 
     return () => clearInterval(checkInterval);
-  }, [sdkState?.isLoaded]);
+  }, [sdkState?.isLoaded, sdkState?.actions]);
 
   const getAuthToken = useCallback(async () => {
     const fc = window.farcaster || window.sdk;
