@@ -220,16 +220,27 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken }) => {
   };
 
   const handleMint = async () => {
-    if (!wallet.connected || !wallet.provider) {
+    if (!wallet.connected) {
       onConnect();
       return;
     }
 
-    // Validate provider has request method
-    if (typeof wallet.provider.request !== 'function') {
-      console.error('Provider does not have request method:', wallet.provider);
-      showMessage('Invalid wallet provider. Please reconnect your wallet.', 'error');
-      return;
+    // If no provider or invalid provider, try to reconnect
+    if (!wallet.provider || typeof wallet.provider.request !== 'function') {
+      console.log('Invalid or missing provider, attempting to reconnect...');
+      showMessage('Reconnecting wallet...', 'info');
+      
+      // Trigger reconnection
+      await onConnect();
+      
+      // Wait a moment for reconnection
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Check if we have a valid provider now
+      if (!wallet.provider || typeof wallet.provider.request !== 'function') {
+        showMessage('Unable to connect wallet. Please refresh and try again.', 'error');
+        return;
+      }
     }
 
     setMinting(true);

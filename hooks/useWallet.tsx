@@ -125,6 +125,11 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
 
     const walletName = getWalletName(provider);
     console.log(`Connecting to ${walletName}...`);
+    console.log('Provider details:', {
+      hasRequest: typeof provider.request === 'function',
+      providerType: typeof provider,
+      providerKeys: Object.keys(provider || {})
+    });
 
     try {
       // For Farcaster wallets, ensure ready() is called if available
@@ -146,6 +151,7 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
         });
 
         await checkNetwork(provider);
+        console.log('Successfully connected wallet:', accounts[0]);
       }
     } catch (error) {
       console.error("Connection error:", error);
@@ -156,6 +162,7 @@ export const useWallet = (sdkState?: { isLoaded: boolean; actions: any }) => {
   }, [checkNetwork, sdkState]);
 
   const disconnect = useCallback(() => {
+    console.log('Disconnecting wallet...');
     setWallet({
       address: null,
       chainId: null,
