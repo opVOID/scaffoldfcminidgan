@@ -8,74 +8,78 @@ const farcasterConnector = createConnector((config) => ({
   id: 'farcaster',
   name: 'Farcaster',
   type: 'injected',
-  async connect() {
+  connect: async () => {
     // Try to get Farcaster SDK provider - check multiple possible locations
     const fc = window.farcaster || window.sdk || (window as any).frameSDK;
     
-    if (fc?.wallet?.ethProvider && typeof fc.wallet.ethProvider.request === 'function') {
-      try {
-        const accounts = await fc.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
-        const chainIdHex = await fc.wallet.ethProvider.request({ method: 'eth_chainId' });
-        const chainId = parseInt(chainIdHex, 16);
-        
-        return {
-          accounts: accounts.map((address: string) => ({ address })),
-          chainId: chainId
-        };
-      } catch (error) {
-        console.warn('Farcaster wallet.ethProvider connection failed:', error);
-      }
-    }
-    
-    if (fc?.wallet?.provider && typeof fc.wallet.provider.request === 'function') {
-      try {
-        const accounts = await fc.wallet.provider.request({ method: 'eth_requestAccounts' });
-        const chainIdHex = await fc.wallet.provider.request({ method: 'eth_chainId' });
-        const chainId = parseInt(chainIdHex, 16);
-        
-        return {
-          accounts: accounts.map((address: string) => ({ address })),
-          chainId: chainId
-        };
-      } catch (error) {
-        console.warn('Farcaster wallet.provider connection failed:', error);
-      }
-    }
-    
-    if (fc?.ethereumProvider && typeof fc.ethereumProvider.request === 'function') {
-      try {
-        const accounts = await fc.ethereumProvider.request({ method: 'eth_requestAccounts' });
-        const chainIdHex = await fc.ethereumProvider.request({ method: 'eth_chainId' });
-        const chainId = parseInt(chainIdHex, 16);
-        
-        return {
-          accounts: accounts.map((address: string) => ({ address })),
-          chainId: chainId
-        };
-      } catch (error) {
-        console.warn('Farcaster ethereumProvider connection failed:', error);
-      }
-    }
-    
-    // Try direct SDK actions
-    if ((window as any).sdkState?.actions && typeof (window as any).sdkState.actions.request === 'function') {
-      try {
-        const actions = (window as any).sdkState.actions;
-        const accounts = await actions.request({ method: 'eth_requestAccounts' });
-        const chainIdHex = await actions.request({ method: 'eth_chainId' });
-        const chainId = parseInt(chainIdHex, 16);
-        
-        return {
-          accounts: accounts.map((address: string) => ({ address })),
-          chainId: chainId
-        };
-      } catch (error) {
-        console.warn('Farcaster sdkState.actions connection failed:', error);
-      }
-    }
-    
-    // If we're in Farcaster but can't connect to wallet, return a mock connection
+    // In Farcaster frames, try to auto-connect without requesting accounts
     if (fc) {
+      // Check if already connected by trying to get accounts first
+      let accounts = [];
+      let chainId = base.id; // Default to Base chain
+      
+      // Try different provider locations for existing accounts
+      if (fc?.wallet?.ethProvider && typeof fc.wallet.ethProvider.request === 'function') {
+        try {
+          accounts = await fc.wallet.ethProvider.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            const chainIdHex = await fc.wallet.ethProvider.request({ method: 'eth_chainId' });
+            chainId = parseInt(chainIdHex, 16) as typeof base.id;
+          }
+        } catch (error) {
+          console.warn('Farcaster wallet.ethProvider accounts check failed:', error);
+        }
+      }
+      
+      if (accounts.length === 0 && fc?.wallet?.provider && typeof fc.wallet.provider.request === 'function') {
+        try {
+          accounts = await fc.wallet.provider.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            const chainIdHex = await fc.wallet.provider.request({ method: 'eth_chainId' });
+            chainId = parseInt(chainIdHex, 16) as typeof base.id;
+          }
+        } catch (error) {
+          console.warn('Farcaster wallet.provider accounts check failed:', error);
+        }
+      }
+      
+      if (accounts.length === 0 && fc?.ethereumProvider && typeof fc.ethereumProvider.request === 'function') {
+        try {
+          accounts = await fc.ethereumProvider.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            const chainIdHex = await fc.ethereumProvider.request({ method: 'eth_chainId' });
+            chainId = parseInt(chainIdHex, 16) as typeof base.id;
+          }
+        } catch (error) {
+          console.warn('Farcaster ethereumProvider accounts check failed:', error);
+        }
+      }
+      
+      // If we have accounts, return them
+      if (accounts && accounts.length > 0) {
+        return {
+          accounts: accounts.map((address: string) => ({ address })),
+          chainId: chainId
+        };
+      }
+      
+      // If no accounts found, try to request them (for manual connection)
+      if (fc?.wallet?.ethProvider && typeof fc.wallet.ethProvider.request === 'function') {
+        try {
+          const requestedAccounts = await fc.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
+          const chainIdHex = await fc.wallet.ethProvider.request({ method: 'eth_chainId' });
+          const requestedChainId = parseInt(chainIdHex, 16) as typeof base.id;
+          
+          return {
+            accounts: requestedAccounts.map((address: string) => ({ address })),
+            chainId: requestedChainId
+          };
+        } catch (error) {
+          console.warn('Farcaster wallet.ethProvider request failed:', error);
+        }
+      }
+      
+      // If we're in Farcaster but can't connect to wallet, return a mock connection
       console.warn('In Farcaster environment but no wallet provider available, returning mock connection');
       return {
         accounts: [{ address: '0x0000000000000000000000000000000000000000' }],
@@ -85,10 +89,10 @@ const farcasterConnector = createConnector((config) => ({
     
     throw new Error('Farcaster wallet not found');
   },
-  async disconnect() {
+  disconnect: async () => {
     // Farcaster wallets typically don't support manual disconnect
   },
-  async getAccounts() {
+  getAccounts: async () => {
     const fc = window.farcaster || window.sdk || (window as any).frameSDK;
     
     if (fc?.wallet?.ethProvider && typeof fc.wallet.ethProvider.request === 'function') {
@@ -118,25 +122,25 @@ const farcasterConnector = createConnector((config) => ({
       }
     }
     
-    if ((window as any).sdkState?.actions) {
+    if ((window as any).sdkState?.actions && typeof (window as any).sdkState.actions.request === 'function') {
       try {
-        const accounts = await (window as any).sdkState.actions.request({ method: 'eth_accounts' });
+        const actions = (window as any).sdkState.actions;
+        const accounts = await actions.request({ method: 'eth_accounts' });
         return accounts.map((address: string) => ({ address }));
       } catch (error) {
         console.warn('Farcaster sdkState.actions getAccounts failed:', error);
       }
     }
     
-    // Return empty array if no provider available
     return [];
   },
-  async getChainId() {
+  getChainId: async () => {
     const fc = window.farcaster || window.sdk || (window as any).frameSDK;
     
     if (fc?.wallet?.ethProvider && typeof fc.wallet.ethProvider.request === 'function') {
       try {
         const chainIdHex = await fc.wallet.ethProvider.request({ method: 'eth_chainId' });
-        return parseInt(chainIdHex, 16);
+        return parseInt(chainIdHex, 16) as typeof base.id;
       } catch (error) {
         console.warn('Farcaster wallet.ethProvider getChainId failed:', error);
       }
@@ -145,7 +149,7 @@ const farcasterConnector = createConnector((config) => ({
     if (fc?.wallet?.provider && typeof fc.wallet.provider.request === 'function') {
       try {
         const chainIdHex = await fc.wallet.provider.request({ method: 'eth_chainId' });
-        return parseInt(chainIdHex, 16);
+        return parseInt(chainIdHex, 16) as typeof base.id;
       } catch (error) {
         console.warn('Farcaster wallet.provider getChainId failed:', error);
       }
@@ -154,50 +158,45 @@ const farcasterConnector = createConnector((config) => ({
     if (fc?.ethereumProvider && typeof fc.ethereumProvider.request === 'function') {
       try {
         const chainIdHex = await fc.ethereumProvider.request({ method: 'eth_chainId' });
-        return parseInt(chainIdHex, 16);
+        return parseInt(chainIdHex, 16) as typeof base.id;
       } catch (error) {
         console.warn('Farcaster ethereumProvider getChainId failed:', error);
       }
     }
     
-    if ((window as any).sdkState?.actions) {
+    if ((window as any).sdkState?.actions && typeof (window as any).sdkState.actions.request === 'function') {
       try {
-        const chainIdHex = await (window as any).sdkState.actions.request({ method: 'eth_chainId' });
-        return parseInt(chainIdHex, 16);
+        const actions = (window as any).sdkState.actions;
+        const chainIdHex = await actions.request({ method: 'eth_chainId' });
+        return parseInt(chainIdHex, 16) as typeof base.id;
       } catch (error) {
         console.warn('Farcaster sdkState.actions getChainId failed:', error);
       }
     }
     
-    return base.id; // Default to Base
+    return base.id;
   },
-  async isAuthorized() {
-    // Check if we're in a Farcaster environment first
+  isAuthorized: async function() {
     const fc = window.farcaster || window.sdk || (window as any).frameSDK;
-    if (fc) {
-      // In Farcaster, we assume authorization if SDK is available
-      return true;
-    }
+    if (fc) return true;
     
-    // For non-Farcaster environments, check accounts
     try {
       const accounts = await this.getAccounts();
       return accounts.length > 0;
-    } catch (error) {
-      console.warn('Failed to check authorization:', error);
+    } catch {
       return false;
     }
   },
-  async switchChain({ chainId }: { chainId: number }) {
+  switchChain: async ({ chainId }: { chainId: number }) => {
     // Farcaster wallets typically don't support chain switching
     throw new Error('Chain switching not supported in Farcaster');
   },
   // Event handlers are optional for basic functionality
   onAccountsChanged: undefined,
-  onChainChanged: undefined, 
+  onChainChanged: undefined,
   onConnect: undefined,
   onDisconnect: undefined,
-  getProvider() {
+  getProvider: () => {
     // Return the Farcaster provider if available
     const fc = window.farcaster || window.sdk || (window as any).frameSDK;
     

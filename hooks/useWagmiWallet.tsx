@@ -47,24 +47,18 @@ export const useWagmiWallet = () => {
     // Try to find connector by checking which one is currently connected
     const connectedConnector = connectors.find(c => {
       // Check if this connector has the current account
-      if (c.id === 'injected' && window.ethereum?.isMetaMask) return true;
-      if (c.id === 'injected' && window.ethereum?.isCoinbaseWallet) return true;
-      if (c.id === 'walletConnect') return true;
+      if (c.id === 'injected' && (window as any).ethereum?.isMetaMask) return true;
+      if (c.id === 'walletconnect') return true;
       if (c.id === 'farcaster') return true;
       return false;
     });
     
-    if (connectedConnector) {
-      // Return appropriate name based on connector type
-      if (connectedConnector.id === 'injected' && window.ethereum?.isMetaMask) return 'MetaMask';
-      if (connectedConnector.id === 'injected' && window.ethereum?.isCoinbaseWallet) return 'Coinbase Wallet';
-      if (connectedConnector.id === 'walletConnect') return 'WalletConnect';
-      if (connectedConnector.id === 'farcaster') return 'Farcaster';
-      return connectedConnector.name || 'Unknown Wallet';
-    }
-    
-    // Fallback to checking window globals
-    if (window.ethereum?.isMetaMask) return 'MetaMask';
+    // Return connector name or fallback
+    if (connectedConnector?.name) return connectedConnector.name;
+    if ((window as any).ethereum?.isMetaMask) return 'MetaMask';
+    if ((window as any).coinbaseWalletExtension) return 'Coinbase';
+    if ((window as any).walletlink) return 'WalletLink';
+    if ((window as any).bitkeep) return 'BitKeep';
     if (window.ethereum?.isCoinbaseWallet) return 'Coinbase Wallet';
     if (window.walletlink) return 'WalletLink';
     if (window.bitkeep) return 'BitKeep';
@@ -76,11 +70,16 @@ export const useWagmiWallet = () => {
     try {
       const connectorsArray = Array.from(connectors);
       
-      // Try Farcaster connector first
-      const farcasterConnector = connectorsArray.find(c => c.id === 'farcaster');
-      if (farcasterConnector) {
-        await connect({ connector: farcasterConnector });
-        return;
+      // Check if we're in Farcaster environment first
+      const fc = window.farcaster || window.sdk || (window as any).frameSDK;
+      
+      if (fc) {
+        // In Farcaster environment, try to auto-connect
+        const farcasterConnector = connectorsArray.find(c => c.id === 'farcaster');
+        if (farcasterConnector) {
+          await connect({ connector: farcasterConnector });
+          return;
+        }
       }
       
       // Fallback to injected (MetaMask, etc.)

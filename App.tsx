@@ -38,6 +38,25 @@ function App() {
   
   const { wallet, connect, disconnect, getAuthToken, walletClient, ensureCorrectNetwork } = useWagmiWallet();
   const [activePage, setActivePage] = useState<PageType>('mint');
+  // Auto-connect in Farcaster environment
+  useEffect(() => {
+    if (isFarcasterEnv && !wallet.connected && !wallet.connecting) {
+      // Auto-connect when in Farcaster environment
+      const autoConnect = async () => {
+        try {
+          await connect();
+          console.log('Auto-connected in Farcaster environment');
+        } catch (error) {
+          console.warn('Auto-connect failed in Farcaster environment:', error);
+        }
+      };
+      
+      // Small delay to ensure providers are ready
+      const timer = setTimeout(autoConnect, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isFarcasterEnv, wallet.connected, wallet.connecting, connect]);
+
   const hasAttemptedToAdd = React.useRef(false);
 
   const handleAddMiniApp = async () => {
