@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Minus, Plus, X, Share2, ExternalLink, Image as ImageIcon, AlertCircle } from 'lucide-react';
-import { WalletState, NFT } from '../types';
+import { WagmiWalletState } from '../hooks/useWagmiWallet';
+import { NFT } from '../types';
 import { CONTRACT_ADDRESS, EXPLORER_URL, IPFS_GATEWAY, APP_URL, ADMIN_WALLET } from '../constants';
 import { fetchUserNFTs, fetchMetadata, fetchCollectionStats } from '../services/web3';
 import { fetchBatchLocalMetadata, fetchLocalMetadataWithCache } from '../services/localMetadata';
@@ -8,14 +9,17 @@ import { rewardUserShare } from '../services/api';
 import { getRaffleStats } from '../services/megapot';
 import { getPhunkImageURL } from '../utils/getPhunkImageURL';
 import LazyImage from '../components/LazyImage';
+import { formatUnits, parseUnits } from 'viem';
 
 interface MintProps {
-  wallet: WalletState;
+  wallet: WagmiWalletState;
   onConnect: () => void;
   getAuthToken: () => Promise<string | null>;
+  walletClient: any;
+  ensureCorrectNetwork: () => Promise<void>;
 }
 
-const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken }) => {
+const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken, walletClient, ensureCorrectNetwork }) => {
   const [quantity, setQuantity] = useState(1);
   const [minting, setMinting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -225,19 +229,23 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken }) => {
       return;
     }
 
-    // If no provider or invalid provider, try to reconnect
-    if (!wallet.provider || typeof wallet.provider.request !== 'function') {
-      console.log('Invalid or missing provider, attempting to reconnect...');
+    // Ensure we're on the correct network
+    try {
+      await ensureCorrectNetwork();
+    } catch (error) {
+      console.error('Network switch failed:', error);
+      showMessage('Please switch to Base network to mint', 'error');
+      return;
+    }
+
+    // Validate wallet client
+    if (!walletClient) {
+      console.log('No wallet client, attempting to reconnect...');
       showMessage('Reconnecting wallet...', 'info');
-      
-      // Trigger reconnection
       await onConnect();
-      
-      // Wait a moment for reconnection
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Check if we have a valid provider now
-      if (!wallet.provider || typeof wallet.provider.request !== 'function') {
+      if (!walletClient) {
         showMessage('Unable to connect wallet. Please refresh and try again.', 'error');
         return;
       }
@@ -246,8 +254,9 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken }) => {
     setMinting(true);
 
     try {
-      // Calculate total price in wei
-      const totalPriceWei = Math.floor(stats.price * 1e18) * quantity;
+      // Calculate total price in wei using viem
+      const priceInWei = parseUnits(stats.price.toString(), 18);
+      const totalPriceWei = priceInWei * BigInt(quantity);
 
       // Prepare mint transaction with quantity
       const mintFunctionData = quantity > 1
@@ -255,37 +264,32 @@ const Mint: React.FC<MintProps> = ({ wallet, onConnect, getAuthToken }) => {
         : '0x1249c58b'; // mint() selector for single
 
       const txParams = {
-        from: wallet.address,
-        to: CONTRACT_ADDRESS,
-        data: mintFunctionData,
-        value: totalPriceWei.toString(16),
+        to: CONTRACT_ADDRESS as `0x${string}`,
+        data: mintFunctionData as `0x${string}`,
+        value: totalPriceWei,
       };
 
       console.log('Sending transaction with params:', txParams);
-      console.log('Provider:', wallet.provider);
-      console.log('Provider type:', typeof wallet.provider);
+      console.log('Wallet client:', walletClient);
 
-      // Send transaction using the correct provider
-      const txHash = await wallet.provider.request({
-        method: 'eth_sendTransaction',
-        params: [txParams],
-      });
+      // Send transaction using wagmi wallet client
+      const txHash = await walletClient.sendTransaction(txParams);
 
       showMessage('Transaction submitted! Waiting for confirmation...', 'info');
 
       // Wait for transaction confirmation and get real minted token(s)
       setTimeout(async () => {
         try {
-          // Validate provider still has request method
-          if (typeof wallet.provider.request !== 'function') {
-            throw new Error('Provider lost request method during transaction');
-          }
-
-          // Get the real minted token IDs from transaction receipt
-          const receipt = await wallet.provider.request({
-            method: 'eth_getTransactionReceipt',
-            params: [txHash],
+          // Get transaction receipt using public client
+          const publicClient = walletClient.extend({
+            getTransactionReceipt: walletClient.getTransactionReceipt || 
+              ((hash: `0x${string}`) => walletClient.request({
+                method: 'eth_getTransactionReceipt',
+                params: [hash]
+              }))
           });
+          
+          const receipt = await publicClient.getTransactionReceipt(txHash);
 
           if (receipt && receipt.status === '0x1') {
             // Find all Transfer events from our contract

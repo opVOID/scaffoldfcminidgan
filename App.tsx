@@ -1,6 +1,6 @@
 import './polyfills';
 import React, { useState, useEffect } from 'react';
-import { useWallet } from './hooks/useWallet';
+import { useWagmiWallet } from './hooks/useWagmiWallet';
 import { PageType } from './types';
 import NavBar from './components/NavBar';
 import Header from './components/Header';
@@ -10,6 +10,10 @@ import Airdrop from './pages/Airdrop';
 import Raffle from './pages/Raffle';
 import Card from './pages/Card';
 import { useMiniApp } from '@neynar/react';
+import { WagmiProvider } from 'wagmi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { config } from './config/wagmi';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Initialize Farcaster SDK directly
 declare global {
@@ -18,9 +22,21 @@ declare global {
   }
 }
 
+const queryClient = new QueryClient();
+
 function App() {
-  const { isSDKLoaded, actions, added } = useMiniApp();
-  const { wallet, connect, disconnect, getAuthToken } = useWallet({ isLoaded: isSDKLoaded, actions });
+  // Check if we're in a Farcaster environment before using useMiniApp
+  const isFarcasterEnv = typeof window !== 'undefined' && (
+    window.farcaster || 
+    window.sdk || 
+    (window as any).frameSDK ||
+    window.location?.search?.includes('farcaster')
+  );
+  
+  const miniApp = isFarcasterEnv ? useMiniApp() : { isSDKLoaded: false, actions: null, added: false };
+  const { isSDKLoaded, actions, added } = miniApp;
+  
+  const { wallet, connect, disconnect, getAuthToken, walletClient, ensureCorrectNetwork } = useWagmiWallet();
   const [activePage, setActivePage] = useState<PageType>('mint');
   const hasAttemptedToAdd = React.useRef(false);
 
@@ -60,7 +76,7 @@ function App() {
   const renderPage = () => {
     switch (activePage) {
       case 'mint':
-        return <Mint wallet={wallet} onConnect={connect} getAuthToken={getAuthToken} />;
+        return <Mint wallet={wallet} onConnect={connect} getAuthToken={getAuthToken} walletClient={walletClient} ensureCorrectNetwork={ensureCorrectNetwork} />;
       case 'rank':
         return <Leaderboard wallet={wallet} onConnect={connect} getAuthToken={getAuthToken} />;
       case 'airdrop':
@@ -70,18 +86,24 @@ function App() {
       case 'raffle':
         return <Raffle />;
       default:
-        return <Mint wallet={wallet} onConnect={connect} />;
+        return <Mint wallet={wallet} onConnect={connect} getAuthToken={getAuthToken} walletClient={walletClient} ensureCorrectNetwork={ensureCorrectNetwork} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-neon selection:text-black">
-      <Header wallet={wallet} onConnect={connect} onDisconnect={disconnect} />
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <div className="min-h-screen bg-[#050505] text-white selection:bg-neon selection:text-black">
+            <Header wallet={wallet} onConnect={connect} onDisconnect={disconnect} />
 
-      {renderPage()}
+            {renderPage()}
 
-      <NavBar activePage={activePage} setPage={setActivePage} />
-    </div>
+            <NavBar activePage={activePage} setPage={setActivePage} />
+          </div>
+        </AuthProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
 

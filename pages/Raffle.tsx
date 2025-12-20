@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Ticket, Trophy, Zap, Loader2, History, PlayCircle, Share2, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
-import { useWallet } from '../hooks/useWallet';
+import { useWagmiWallet } from '../hooks/useWagmiWallet';
 import {
   getRaffleStats,
   getUserInfo,
@@ -24,7 +24,7 @@ import {
 import { MEGAPOT_LOGO_URL, APP_URL } from '../constants';
 
 const Raffle: React.FC = () => {
-  const { wallet, connect } = useWallet();
+  const { wallet, connect } = useWagmiWallet();
   const [activeTab, setActiveTab] = useState<'play' | 'history'>('play');
 
   // Stats state

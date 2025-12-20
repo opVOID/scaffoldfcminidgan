@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Bell, Zap, RefreshCw, Gift, Loader2 } from 'lucide-react';
 import { getSettings, saveSettings } from '../services/db';
-import { useWallet } from '../hooks/useWallet';
+import { useWagmiWallet } from '../hooks/useWagmiWallet';
 
 const Toggle: React.FC<{ label: string; description: string; checked: boolean; onChange: () => void; icon: any }> = ({ 
   label, description, checked, onChange, icon: Icon 
@@ -26,7 +26,7 @@ const Toggle: React.FC<{ label: string; description: string; checked: boolean; o
 );
 
 const Settings: React.FC = () => {
-  const { wallet, connect } = useWallet();
+  const { wallet, connect } = useWagmiWallet();
   const [settings, setSettings] = useState({
     newMints: true,
     airdrops: true,
