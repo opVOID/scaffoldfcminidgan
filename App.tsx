@@ -72,20 +72,34 @@ function InnerApp() {
             // Try Quick Auth for seamless authentication
             try {
               console.log('[DEBUG] Attempting Quick Auth...');
-              const authResponse = await fetch('/api/auth/quick-auth', {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-              });
               
-              if (authResponse.ok) {
-                const userData = await authResponse.json();
-                console.log('[DEBUG] Quick Auth successful:', userData);
-                setUser(userData);
-                setIsAuthenticated(true);
+              // First, try to get a token directly from Mini App SDK
+              let token = null;
+              if (window.sdk?.quickAuth?.getToken) {
+                token = await window.sdk.quickAuth.getToken();
+                console.log('[DEBUG] Got token from sdk.quickAuth.getToken:', token ? 'success' : 'failed');
+              }
+              
+              if (token) {
+                // If we have a token, use it to get user data
+                const authResponse = await fetch('/api/auth/quick-auth', {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                });
+                
+                if (authResponse.ok) {
+                  const userData = await authResponse.json();
+                  console.log('[DEBUG] Quick Auth successful:', userData);
+                  setUser(userData.user || userData);
+                  setIsAuthenticated(true);
+                } else {
+                  console.log('[DEBUG] Quick Auth verification failed:', await authResponse.text());
+                }
               } else {
-                console.log('[DEBUG] Quick Auth not available or failed:', await authResponse.text());
+                console.log('[DEBUG] No Quick Auth token available');
               }
             } catch (authError) {
               console.error('[ERROR] Error during Quick Auth:', authError);

@@ -115,59 +115,70 @@ export const useWagmiWallet = () => {
   }, [chainId, switchChain]);
 
   const getAuthToken = useCallback(async (): Promise<string | null> => {
-    // Try multiple methods to get auth token
-    const fc = window.farcaster || window.sdk || (window as any).frameSDK;
+    // Try Mini App SDK quickAuth methods first (preferred)
+    if (window.sdk?.quickAuth?.getToken) {
+      try {
+        const token = await window.sdk.quickAuth.getToken();
+        console.log('Got auth token via sdk.quickAuth.getToken:', token ? 'success' : 'failed');
+        return token;
+      } catch (error) {
+        console.error("Failed to get auth token via sdk.quickAuth:", error);
+      }
+    }
     
+    // Try alternative quickAuth methods
+    const fc = window.farcaster || window.sdk || (window as any).frameSDK;
     if (fc?.quickAuth?.getToken) {
       try {
         const token = await fc.quickAuth.getToken();
-        console.log('Got auth token via quickAuth.getToken:', token ? 'success' : 'failed');
+        console.log('Got auth token via fc.quickAuth.getToken:', token ? 'success' : 'failed');
         return token;
       } catch (error) {
-        console.error("Failed to get Farcaster auth token via quickAuth:", error);
+        console.error("Failed to get auth token via fc.quickAuth:", error);
       }
     }
     
-    // Try alternative methods
-    if (fc?.auth?.getToken) {
-      try {
-        const token = await fc.auth.getToken();
-        console.log('Got auth token via auth.getToken:', token ? 'success' : 'failed');
-        return token;
-      } catch (error) {
-        console.error("Failed to get Farcaster auth token via auth:", error);
-      }
-    }
-    
-    // Try direct SDK methods
+    // Try direct auth methods
     if (window.sdk?.auth?.getToken) {
       try {
         const token = await window.sdk.auth.getToken();
-        console.log('Got auth token via window.sdk.auth.getToken:', token ? 'success' : 'failed');
+        console.log('Got auth token via sdk.auth.getToken:', token ? 'success' : 'failed');
         return token;
       } catch (error) {
-        console.error("Failed to get auth token via window.sdk.auth:", error);
+        console.error("Failed to get auth token via sdk.auth:", error);
       }
     }
     
-    // Try frame SDK methods
-    if ((window as any).frameSDK?.actions?.getUserInfo) {
+    // Try signIn method to get a token
+    if (window.sdk?.actions?.signIn) {
       try {
-        const userInfo = await (window as any).frameSDK.actions.getUserInfo();
-        const token = userInfo?.token;
-        console.log('Got auth token via frameSDK.getUserInfo:', token ? 'success' : 'failed');
-        return token;
+        const nonce = Math.random().toString(36).substring(7);
+        const result = await window.sdk.actions.signIn({ nonce });
+        console.log('Got auth token via signIn:', result ? 'success' : 'failed');
+        
+        // The result might contain a token or we need to verify it server-side
+        if (result && result.token) {
+          return result.token;
+        }
+        
+        // If no token directly, try to get it from the auth result
+        if (result && result.message && result.signature) {
+          // We'll need to verify this server-side to get a proper token
+          console.log('Got signIn result, will verify server-side');
+          return 'signin_result';
+        }
       } catch (error) {
-        console.error("Failed to get auth token via frameSDK:", error);
+        console.error("Failed to get auth token via signIn:", error);
       }
     }
     
-    console.warn('No auth token method available. Farcaster SDK state:', {
+    console.warn('No auth token method available. Mini App SDK state:', {
       hasFarcaster: !!window.farcaster,
       hasSDK: !!window.sdk,
       hasFrameSDK: !!(window as any).frameSDK,
-      hasQuickAuth: !!fc?.quickAuth,
-      hasAuth: !!fc?.auth
+      hasQuickAuth: !!window.sdk?.quickAuth,
+      hasAuth: !!window.sdk?.auth,
+      hasActions: !!window.sdk?.actions
     });
     
     return null;
