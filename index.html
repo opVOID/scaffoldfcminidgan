@@ -54,6 +54,32 @@
   <!-- Mini App SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk@0.2.1/dist/index.min.js"></script>
   <script>
+    // Verify SDK loaded and add fallback
+    window.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, checking SDK availability...');
+      
+      // Check if SDK is available
+      if (window.sdk) {
+        console.log('Mini App SDK detected:', window.sdk);
+      } else {
+        console.warn('Mini App SDK not found in window object');
+        // Try to find it in other locations
+        if (window.farcaster) {
+          console.log('Found farcaster object:', window.farcaster);
+          window.sdk = window.farcaster;
+        }
+      }
+      
+      // Force hide splash screen after 5 seconds as fallback
+      setTimeout(() => {
+        console.log('Fallback: Attempting to force hide splash screen');
+        if (window.sdk?.actions?.ready) {
+          window.sdk.actions.ready().catch(console.error);
+        }
+      }, 5000);
+    });
+  </script>
+  <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {

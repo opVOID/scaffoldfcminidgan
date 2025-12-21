@@ -47,6 +47,20 @@ function InnerApp() {
         );
         console.log('[DEBUG] Farcaster environment detected:', isFarcasterEnv);
 
+        // CRITICAL: Always try to call ready() to hide splash screen
+        const tryCallReady = async (source: string) => {
+          try {
+            console.log(`[DEBUG] Calling sdk.actions.ready() from ${source}...`);
+            const readyResponse = await sdk.actions.ready();
+            console.log(`[DEBUG] sdk.actions.ready() response from ${source}:`, readyResponse);
+            return true;
+          } catch (error) {
+            console.error(`[ERROR] Failed to call ready() from ${source}:`, error);
+            return false;
+          }
+        };
+
+        // Multiple attempts to hide splash screen
         if (isFarcasterEnv) {
           try {
             console.log('[DEBUG] Initializing Farcaster SDK...');
@@ -55,90 +69,59 @@ function InnerApp() {
             console.log('[DEBUG] SDK available:', !!sdk);
             console.log('[DEBUG] sdk.actions:', sdk?.actions ? 'available' : 'missing');
             
-            // Call ready() to initialize the SDK and hide splash screen
-            try {
-              console.log('[DEBUG] Calling sdk.actions.ready()...');
-              const readyResponse = await sdk.actions.ready();
-              console.log('[DEBUG] sdk.actions.ready() response:', readyResponse);
-              
-              // If we get here, SDK is properly initialized
-              console.log('[DEBUG] Farcaster SDK initialized successfully');
-            } catch (readyError) {
-              console.error('[ERROR] Failed to initialize Farcaster SDK:', readyError);
-              // Even if ready() fails, we should try to continue
-              return;
-            }
+            // Try multiple times to call ready()
+            await tryCallReady('primary attempt');
             
-            // Try Quick Auth for seamless authentication
-            try {
-              console.log('[DEBUG] Attempting Quick Auth...');
-              
-              // First, try to get a token directly from Mini App SDK
-              let token = null;
-              if (window.sdk?.quickAuth?.getToken) {
-                token = await window.sdk.quickAuth.getToken();
-                console.log('[DEBUG] Got token from sdk.quickAuth.getToken:', token ? 'success' : 'failed');
-              }
-              
-              if (token) {
-                // If we have a token, use it to get user data
-                const authResponse = await fetch('/api/auth/quick-auth', {
-                  method: 'GET',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                });
-                
-                if (authResponse.ok) {
-                  const userData = await authResponse.json();
-                  console.log('[DEBUG] Quick Auth successful:', userData);
-                  setUser(userData.user || userData);
-                  setIsAuthenticated(true);
-                } else {
-                  console.log('[DEBUG] Quick Auth verification failed:', await authResponse.text());
-                }
-              } else {
-                console.log('[DEBUG] No Quick Auth token available');
-              }
-            } catch (authError) {
-              console.error('[ERROR] Error during Quick Auth:', authError);
-              // Continue without authentication
-            }
+            // If we get here, SDK is properly initialized
+            console.log('[DEBUG] Farcaster SDK initialized successfully');
           } catch (error) {
             console.error('[ERROR] Farcaster initialization failed:', error);
-            // Try to call ready() one more time as a fallback
-            try {
-              await sdk.actions.ready();
-              console.log('[DEBUG] Fallback ready() call succeeded');
-            } catch (fallbackError) {
-              console.error('[ERROR] Fallback ready() failed:', fallbackError);
-            }
           }
         } else {
-          console.log('[DEBUG] Not in Farcaster environment, skipping SDK initialization');
-          // If not in Farcaster env but SDK is available, still call ready()
-          if (typeof sdk?.actions?.ready === 'function') {
-            try {
-              await sdk.actions.ready();
-              console.log('[DEBUG] Called ready() in non-Farcaster environment');
-            } catch (e) {
-              console.error('[ERROR] Failed to call ready() in non-Farcaster environment:', e);
-            }
+          console.log('[DEBUG] Not in Farcaster environment, but still calling ready()');
+        }
+
+        // Try Quick Auth for seamless authentication
+        try {
+          console.log('[DEBUG] Attempting Quick Auth...');
+          
+          // First, try to get a token directly from Mini App SDK
+          let token = null;
+          if (window.sdk?.quickAuth?.getToken) {
+            token = await window.sdk.quickAuth.getToken();
+            console.log('[DEBUG] Got token from sdk.quickAuth.getToken:', token ? 'success' : 'failed');
           }
+          
+          if (token) {
+            // If we have a token, use it to get user data
+            const authResponse = await fetch('/api/auth/quick-auth', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+            });
+            
+            if (authResponse.ok) {
+              const userData = await authResponse.json();
+              console.log('[DEBUG] Quick Auth successful:', userData);
+              setUser(userData.user || userData);
+              setIsAuthenticated(true);
+            } else {
+              console.log('[DEBUG] Quick Auth verification failed:', await authResponse.text());
+            }
+          } else {
+            console.log('[DEBUG] No Quick Auth token available');
+          }
+        } catch (authError) {
+          console.error('[ERROR] Error during Quick Auth:', authError);
+          // Continue without authentication
         }
       } catch (error) {
         console.error('[ERROR] Critical error during app initialization:', error);
       } finally {
-        // As a final fallback, try to call ready() one more time
-        if (typeof sdk?.actions?.ready === 'function') {
-          try {
-            await sdk.actions.ready();
-            console.log('[DEBUG] Final ready() call completed');
-          } catch (e) {
-            console.error('[ERROR] Final ready() call failed:', e);
-          }
-        }
+        // FINAL FALLBACK: Always try to call ready() one more time
+        await tryCallReady('final fallback');
         console.log('[DEBUG] App initialization completed');
       }
     };
