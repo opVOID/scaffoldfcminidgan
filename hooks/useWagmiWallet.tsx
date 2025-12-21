@@ -60,8 +60,6 @@ export const useWagmiWallet = () => {
     if ((window as any).walletlink) return 'WalletLink';
     if ((window as any).bitkeep) return 'BitKeep';
     if (window.ethereum?.isCoinbaseWallet) return 'Coinbase Wallet';
-    if (window.walletlink) return 'WalletLink';
-    if (window.bitkeep) return 'BitKeep';
     
     return 'Web3 Wallet';
   };

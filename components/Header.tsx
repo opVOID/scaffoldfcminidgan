@@ -54,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({ wallet, onConnect, onDisconnect }) => {
         <div className="flex items-center gap-2">
           {wallet.connected && wallet.providerName === 'Farcaster' && (
             <div className="text-sm text-gray-300">
-              Farcaster User
+             
             </div>
           )}
           {isReferralWallet && <AdminButton wallet={wallet} />}
