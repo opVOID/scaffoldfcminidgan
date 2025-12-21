@@ -13,6 +13,7 @@ import Card from './pages/Card';
 import Airdrop from './pages/Airdrop';
 import Settings from './pages/Settings';
 import { config } from './config/wagmi';
+import { initializeWalletProvider, getWalletInfo } from './utils/walletProvider';
 import type { PageType } from './types';
 
 // Create a client
@@ -30,6 +31,12 @@ function InnerApp() {
       console.log('[DEBUG] Starting app initialization...');
       
       try {
+        // Initialize wallet provider first to handle conflicts
+        console.log('[DEBUG] Initializing wallet provider...');
+        const walletProvider = await initializeWalletProvider();
+        const walletInfo = getWalletInfo();
+        console.log('[DEBUG] Wallet info:', walletInfo);
+        
         // Debug: Log current environment
         console.log('[DEBUG] Checking Farcaster environment...');
         const isFarcasterEnv = !!(
