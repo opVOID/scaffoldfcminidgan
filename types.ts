@@ -1,5 +1,5 @@
 
-export type PageType = 'mint' | 'rank' | 'airdrop' | 'card' | 'raffle';
+export type PageType = 'mint' | 'leaderboard' | 'raffle' | 'card' | 'airdrop' | 'settings';
 
 export interface WalletState {
   address: string | null;

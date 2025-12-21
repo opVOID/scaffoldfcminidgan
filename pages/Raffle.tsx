@@ -24,7 +24,7 @@ import {
 import { MEGAPOT_LOGO_URL, APP_URL } from '../constants';
 
 const Raffle: React.FC = () => {
-  const { wallet, connect } = useWagmiWallet();
+  const { wallet, connect, walletClient } = useWagmiWallet();
   const [activeTab, setActiveTab] = useState<'play' | 'history'>('play');
 
   // Stats state
@@ -368,10 +368,10 @@ const Raffle: React.FC = () => {
     try {
       const totalCost = buyAmount * stats.ticketCost;
       const txParams = prepareApproveTransaction(wallet.address, totalCost); // Approve only the amount needed
-      const txHash = await wallet.provider.request({
+      const txHash = await walletClient.request({
         method: 'eth_sendTransaction',
         params: [txParams],
-      });
+      }) as string;
 
       showMessage('Approval submitted! Waiting for confirmation...', 'info');
       const receipt = await waitForTransactionReceipt(txHash);
@@ -417,10 +417,10 @@ const Raffle: React.FC = () => {
     setBuying(true);
     try {
       const txParams = prepareBuyTransaction(buyAmount, wallet.address);
-      const txHash = await wallet.provider.request({
+      const txHash = await walletClient.request({
         method: 'eth_sendTransaction',
         params: [txParams],
-      });
+      }) as string;
 
       showMessage('Purchase submitted! Waiting for confirmation...', 'info');
       const receipt = await waitForTransactionReceipt(txHash);

@@ -14,16 +14,20 @@ import Airdrop from './pages/Airdrop';
 import Settings from './pages/Settings';
 import { config } from './config/wagmi';
 import { initializeWalletProvider, getWalletInfo } from './utils/walletProvider';
+import { useWagmiWallet } from './hooks/useWagmiWallet';
 import type { PageType } from './types';
 
 // Create a client
 const queryClient = new QueryClient();
 
-// Inner App component that uses the MiniApp SDK
+// Inner App component that uses the Mini App SDK
 function InnerApp() {
   const [activePage, setActivePage] = useState<PageType>('mint');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<{ fid: number; username?: string; custodyAddress?: string } | null>(null);
+  
+  // Use the wallet hook to get proper wallet state
+  const { wallet, connect, disconnect, getAuthToken, walletClient, ensureCorrectNetwork } = useWagmiWallet();
 
   // Initialize app and handle authentication
   useEffect(() => {
@@ -162,42 +166,39 @@ function InnerApp() {
   const renderPage = () => {
     switch (activePage) {
       case 'mint':
-        return <Mint wallet={{ connected: isAuthenticated, address: user?.custodyAddress || null }} />;
+        return <Mint wallet={wallet} onConnect={connect} getAuthToken={getAuthToken} walletClient={walletClient} ensureCorrectNetwork={ensureCorrectNetwork} />;
       case 'leaderboard':
-        return <Leaderboard wallet={{ connected: isAuthenticated, address: user?.custodyAddress || null }} />;
+        return <Leaderboard 
+          wallet={wallet} 
+          onConnect={connect}
+          getAuthToken={getAuthToken}
+        />;
       case 'raffle':
         return <Raffle />;
       case 'card':
-        return <Card />;
+        return <Card wallet={wallet} setPage={setActivePage} />;
       case 'airdrop':
-        return <Airdrop />;
+        return <Airdrop wallet={wallet} />;
       case 'settings':
         return <Settings />;
       default:
-        return <Mint wallet={{ connected: isAuthenticated, address: user?.custodyAddress || null }} />;
+        return <Mint wallet={wallet} onConnect={connect} getAuthToken={getAuthToken} walletClient={walletClient} ensureCorrectNetwork={ensureCorrectNetwork} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Header 
-        wallet={{ 
-          connected: isAuthenticated, 
-          address: user?.custodyAddress || null,
-          providerName: 'Farcaster'
-        }} 
-        onConnect={handleSignIn}
-        onDisconnect={() => {
-          setIsAuthenticated(false);
-          setUser(null);
-        }}
+        wallet={wallet} 
+        onConnect={connect}
+        onDisconnect={disconnect}
       />
       
       <main className="pt-20 pb-20">
         {renderPage()}
       </main>
 
-      <NavBar activePage={activePage} setActivePage={setActivePage} />
+      <NavBar activePage={activePage} setPage={setActivePage} />
     </div>
   );
 }

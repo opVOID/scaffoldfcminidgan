@@ -1,24 +1,28 @@
 
-// Import Dependencies
-import { ethers } from "ethers";
 
-// Global Setup for Farcaster
+import { ethers } from "ethers";
+import { sdk } from "@farcaster/miniapp-sdk";
+
+const isInMiniApp = await sdk.isInMiniApp();
+if (window.sdk?.actions?.ready) {
+  window.sdk.actions.ready();
+}
+
 declare global {
   interface Window {
     sdk?: any;
   }
 }
 
-// Initialize Farcaster SDK or Fallback
 export const initializeFarcasterSDK = async (): Promise<void> => {
-  const inIFrame = window.self !== window.top; // Check if app is in iframe
+  const inIFrame = window.self !== window.top; 
   try {
     if (inIFrame && window.sdk?.actions && typeof window.sdk.actions.ready === "function") {
       // Try initializing Farcaster SDK
       console.log("Attempting to initialize Farcaster SDK...");
       await handleFarcasterSignIn();
     } else {
-      // Fallback: Traditional Wallet Connect (e.g., MetaMask, WalletConnect)
+
       console.log("Not in iframe or Farcaster SDK unavailable. Using fallback...");
       await initiateWalletConnect();
     }
@@ -28,7 +32,7 @@ export const initializeFarcasterSDK = async (): Promise<void> => {
   }
 };
 
-// Farcaster SDK Sign-In
+
 const handleFarcasterSignIn = async (): Promise<void> => {
   try {
     // Farcaster SDK ready action
