@@ -1,17 +1,11 @@
 
 // Import Dependencies
-import WalletConnectProvider from "@walletconnect/web3-provider";
 import { ethers } from "ethers";
 
 // Global Setup for Farcaster
 declare global {
   interface Window {
-    sdk?: {
-      actions?: {
-        ready: () => void;
-        connect: () => Promise<any>;
-      };
-    };
+    sdk?: any;
   }
 }
 
@@ -57,7 +51,9 @@ const initiateWalletConnect = async (): Promise<void> => {
   try {
     console.log("Initializing WalletConnect...");
 
-    // WalletConnect Provider Setup
+    // Note: WalletConnect provider setup is commented out since the import was removed
+    // You can uncomment and configure this if needed
+    /*
     const provider = new WalletConnectProvider({
       infuraId: "YOUR_INFURA_PROJECT_ID", // Replace this with your Infura Project ID
     });
@@ -66,18 +62,12 @@ const initiateWalletConnect = async (): Promise<void> => {
     await provider.enable();
 
     // Wrap the provider with ethers.js
-    const web3Provider = new ethers.providers.Web3Provider(provider);
+    const web3Provider = new ethers.BrowserProvider(provider);
+    */
 
-    // Retrieve connected wallet address
-    const signer = web3Provider.getSigner();
-    const walletAddress = await signer.getAddress();
-
-    // Log connected wallet details
-    console.log("Wallet Connected Successfully: ", walletAddress);
-
-    // Example: Retrieve wallet balance (optional)
-    const balance = await web3Provider.getBalance(walletAddress);
-    console.log("Wallet Balance: ", ethers.utils.formatEther(balance));
+    // Placeholder for WalletConnect functionality
+    console.log("WalletConnect not configured - please implement if needed");
+    return;
   } catch (error) {
     console.error("Wallet Connect Failed: ", error);
     throw new Error("Wallet connection failed. Please ensure your wallet is set up correctly.");

@@ -1,4 +1,4 @@
-import { createClient, VerifyJwtResult } from '@farcaster/quick-auth';
+import { createClient } from '@farcaster/quick-auth';
 import { env } from '../config/env';
 
 // Initialize the client with configuration
@@ -41,7 +41,7 @@ export async function verifyAuth(authHeader: string | undefined): Promise<Valida
 
   try {
     // Verify the JWT using the client
-    const result: VerifyJwtResult = await client.verifyJwt({
+    const result = await client.verifyJwt({
       token,
       domain: env.NEXT_PUBLIC_APP_DOMAIN || 'fcphunksmini.vercel.app',
     });
