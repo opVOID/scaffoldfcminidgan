@@ -30,6 +30,19 @@ function InnerApp() {
     const initializeApp = async () => {
       console.log('[DEBUG] Starting app initialization...');
       
+      // CRITICAL: Always try to call ready() to hide splash screen
+      const tryCallReady = async (source: string) => {
+        try {
+          console.log(`[DEBUG] Calling sdk.actions.ready() from ${source}...`);
+          const readyResponse = await sdk.actions.ready();
+          console.log(`[DEBUG] sdk.actions.ready() response from ${source}:`, readyResponse);
+          return true;
+        } catch (error) {
+          console.error(`[ERROR] Failed to call ready() from ${source}:`, error);
+          return false;
+        }
+      };
+      
       try {
         // Initialize wallet provider first to handle conflicts
         console.log('[DEBUG] Initializing wallet provider...');
@@ -46,19 +59,6 @@ function InnerApp() {
           window.location?.search?.includes('farcaster')
         );
         console.log('[DEBUG] Farcaster environment detected:', isFarcasterEnv);
-
-        // CRITICAL: Always try to call ready() to hide splash screen
-        const tryCallReady = async (source: string) => {
-          try {
-            console.log(`[DEBUG] Calling sdk.actions.ready() from ${source}...`);
-            const readyResponse = await sdk.actions.ready();
-            console.log(`[DEBUG] sdk.actions.ready() response from ${source}:`, readyResponse);
-            return true;
-          } catch (error) {
-            console.error(`[ERROR] Failed to call ready() from ${source}:`, error);
-            return false;
-          }
-        };
 
         // Multiple attempts to hide splash screen
         if (isFarcasterEnv) {
