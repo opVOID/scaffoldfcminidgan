@@ -66,6 +66,8 @@ export const useWagmiWallet = () => {
 
   const handleConnect = useCallback(async () => {
     try {
+      console.log('[useWagmiWallet] handleConnect called');
+      console.log('[useWagmiWallet] Available connectors:', connectors);
       const connectorsArray = Array.from(connectors);
       
       // Check if we're in Farcaster environment first
@@ -93,6 +95,8 @@ export const useWagmiWallet = () => {
       }
     } catch (error) {
       console.error('Connection failed:', error);
+      
+      alert('Failed to connect wallet. Please try again or check console for details.');
       throw error;
     }
   }, [connect, connectors]);
