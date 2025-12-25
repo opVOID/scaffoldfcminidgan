@@ -16,6 +16,7 @@ import { config } from './config/wagmi';
 import { initializeWalletProvider, getWalletInfo } from './utils/walletProvider';
 import { useWagmiWallet } from './hooks/useWagmiWallet';
 import type { PageType } from './types';
+import { AuthKitProvider, authKitConfig } from './config/authkit';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -207,12 +208,14 @@ function InnerApp() {
 function App() {
   return (
     <ErrorBoundary>
+      <AuthKitProvider config={authKitConfig}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <InnerApp />
         </QueryClientProvider>
       </WagmiProvider>
-    </ErrorBoundary>
+    
+      </AuthKitProvider></ErrorBoundary>
   );
 }
 
