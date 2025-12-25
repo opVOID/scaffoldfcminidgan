@@ -16,5 +16,10 @@ View your app in AI Studio: https://ai.studio/apps/drive/1va9qkDmSQp7oY4jEhwbJFs
 1. Install dependencies:
    `npm install`
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+3. 2.5. Configure WalletConnect Project ID:
+   - Go to https://cloud.walletconnect.com and create a free account
+   - Create a new project
+   - Copy your Project ID
+   - Open `.env` file and replace `YOUR_PROJECT_ID_HERE` with your actual Project ID
+4. Run the app:
    `npm run dev`
